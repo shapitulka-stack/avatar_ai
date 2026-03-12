@@ -4,8 +4,8 @@ Lightweight project memory for `avatar_ai`. Update this file as work lands so th
 
 ## Current Snapshot
 
-- Last updated: 2026-03-12
-- Product direction: Telegram-first avatar feed MVP with saved faces, template feed, free queue, and mock image generation
+- Last updated: 2026-03-13
+- Product direction: Telegram-first avatar feed MVP with saved faces, template feed, free queue, mock image generation, and bot/channel links into specific templates
 - Primary architecture: React mini app frontend, FastAPI backend, SQLite/Postgres-compatible job persistence, local file storage, and a lightweight job pipeline that can run locally or inside a single Render web service
 - Current generation strategy: `mock` backend for product-shell validation before real face-swap integration
 - Current delivery shape: Telegram Mini App first, browser debug/admin preview second
@@ -13,6 +13,7 @@ Lightweight project memory for `avatar_ai`. Update this file as work lands so th
 ## Active Decisions
 
 - Keep the user-facing flow focused on `save face -> choose template -> queue -> result`
+- Let channel posts and bot messages drive traffic into the catalog instead of adding more screens inside the mini app
 - Keep queue tier responses in the API, but ship only `free` for this release
 - Preserve saved face profiles and temporary override uploads as separate paths
 - Leave persona chat and research/integration endpoints available in code, but out of the main product UX
@@ -25,10 +26,11 @@ Lightweight project memory for `avatar_ai`. Update this file as work lands so th
 - Mock generation completes end to end and stores results locally
 - Browser mode still works for local QA with guest sessions
 - Telegram validation is already wired for WebApp identity
+- The mini app can now be opened on a specific template or result via Telegram-friendly links
 
 ## Next Useful Steps
 
-- Push the repo to GitHub and run the prepared Render test deploy
+- Use `/top` and direct template links as the first distribution loop from the bot and Telegram channel
 - Connect a real face-swap/image backend behind the existing job flow
 - Add premium tiers and payments on top of the free queue
 - Measure which templates convert best before adding admin tooling
@@ -50,6 +52,7 @@ Lightweight project memory for `avatar_ai`. Update this file as work lands so th
 - Added queue metadata and queue limits to the backend job APIs
 - Rebuilt the frontend around saved faces, template feed, queue status, and results
 - Kept the generation backend on `mock` for the current alpha shell
+- Added bot/channel-oriented deep links so the mini app can open directly on a chosen template or result
 
 ### 2026-03-11
 

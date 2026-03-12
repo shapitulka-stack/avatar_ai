@@ -79,7 +79,9 @@ class Settings(BaseSettings):
     worker_poll_seconds: int = 3
 
     telegram_bot_token: str | None = None
+    telegram_bot_username: str | None = None
     telegram_webapp_url: str | None = None
+    telegram_mini_app_short_name: str | None = None
     telegram_webhook_secret: str | None = None
     telegram_webhook_path: str = '/api/telegram/webhook'
     telegram_init_data_ttl_seconds: int = 86_400

@@ -6,11 +6,12 @@
 
 ## Target outcome
 
-A user opens the mini app inside Telegram, uploads a face once, sees a feed of templates, starts a render from a saved face or a temporary override, waits in a free queue, and comes back to a simple result screen and history.
+A user sees top templates in a Telegram channel or bot message, opens the mini app directly on a selected template, uploads a face once, starts a render from a saved face or a temporary override, waits in a free queue, and comes back to a simple result screen.
 
 ## Product principles
 
 - Telegram-first user flow before public web
+- Channel and bot posts create demand, mini app converts that demand inside the catalog
 - Local-first development stack before cloud complexity
 - Save the face once, then keep the template feed fast and obvious
 - Queue-ready product shape before billing integrations

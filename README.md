@@ -13,6 +13,7 @@ Telegram-first avatar feed MVP for saved-face image renders.
 ## Current product shape
 
 - User flow: save face once, choose a template, enter the free queue, view results
+- Distribution flow: channel posts and bot messages drive traffic into the mini app catalog
 - Media scope: image-only alpha
 - Queue model: free-only for now, premium kept out of scope for this release
 - Generation backend: `mock` for end-to-end flow validation
@@ -47,6 +48,15 @@ cd backend
 .venv\Scripts\activate
 python -m app.telegram_bot
 ```
+
+6. Optional but recommended for channel-friendly direct links:
+
+```env
+TELEGRAM_BOT_USERNAME=your_bot_username
+TELEGRAM_MINI_APP_SHORT_NAME=your_mini_app_short_name
+```
+
+With both values set, the bot can generate Telegram direct links that open the mini app on a specific template or result.
 
 ## Core API for the current MVP
 
@@ -89,3 +99,11 @@ A first cloud test deploy is prepared via [render.yaml](./render.yaml) and [Dock
 - Storage: local container storage for now, which is acceptable for short-lived alpha tests but not for durable production assets
 
 Before Render can deploy, this repo must be pushed to GitHub, GitLab, or Bitbucket.
+
+## Bot and channel flow
+
+- `/start` opens the catalog entrypoint
+- `/top` sends a short list of top templates with buttons that open the mini app on the selected template
+- `/start style-anime-neon` opens the catalog on a specific template
+- Result notifications from the bot open the finished job directly inside the mini app
+- If `TELEGRAM_BOT_USERNAME` and `TELEGRAM_MINI_APP_SHORT_NAME` are configured, the same links can be reused in channel posts

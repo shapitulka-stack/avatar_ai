@@ -56,15 +56,46 @@ function localizeStyle(style: StyleCard): StyleCard {
 
 function currentJobIdFromUrl(): string {
   const url = new URL(window.location.href);
-  return url.searchParams.get("job") || "";
+  const startParam = url.searchParams.get("tgWebAppStartParam") || "";
+  if (url.searchParams.get("job")) {
+    return url.searchParams.get("job") || "";
+  }
+  if (startParam.startsWith("job-")) {
+    return startParam.slice(4);
+  }
+  return "";
 }
 
-function updateJobInUrl(jobId: string | null): void {
+function currentStyleIdFromUrl(): string {
   const url = new URL(window.location.href);
-  if (jobId) {
-    url.searchParams.set("job", jobId);
-  } else {
-    url.searchParams.delete("job");
+  const startParam = url.searchParams.get("tgWebAppStartParam") || "";
+  if (url.searchParams.get("style")) {
+    return url.searchParams.get("style") || "";
+  }
+  if (startParam.startsWith("style-")) {
+    return startParam.slice(6);
+  }
+  return "";
+}
+
+function updateLaunchUrl(params: { jobId?: string | null; styleId?: string | null }): void {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("tgWebAppStartParam");
+
+  if (params.jobId !== undefined) {
+    if (params.jobId) {
+      url.searchParams.set("job", params.jobId);
+    } else {
+      url.searchParams.delete("job");
+    }
+  }
+
+  if (params.styleId !== undefined) {
+    if (params.styleId) {
+      url.searchParams.set("style", params.styleId);
+    } else {
+      url.searchParams.delete("style");
+    }
   }
   window.history.replaceState({}, "", url);
 }
@@ -101,6 +132,7 @@ function App() {
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string>("");
   const [savedFacePreview, setSavedFacePreview] = useState<string>("");
+  const [launchStyleId, setLaunchStyleId] = useState<string>(() => currentStyleIdFromUrl());
   const [selectedStyleId, setSelectedStyleId] = useState<string>("");
   const [previewStyleId, setPreviewStyleId] = useState<string | null>(null);
   const [selectedFaceProfileId, setSelectedFaceProfileId] = useState<string>("");
@@ -181,6 +213,19 @@ function App() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!launchStyleId || currentJobId || !styles.length) {
+      return;
+    }
+
+    const launchStyle = styles.find((style) => style.id === launchStyleId);
+    if (launchStyle) {
+      setSelectedStyleId(launchStyle.id);
+      setPreviewStyleId(launchStyle.id);
+    }
+    setLaunchStyleId("");
+  }, [currentJobId, launchStyleId, styles]);
 
   useEffect(() => {
     if (!isTelegram && !guestSessionId) {
@@ -291,10 +336,12 @@ function App() {
   function openStylePreview(styleId: string): void {
     setSelectedStyleId(styleId);
     setPreviewStyleId(styleId);
+    updateLaunchUrl({ styleId, jobId: null });
   }
 
   function closeStylePreview(): void {
     setPreviewStyleId(null);
+    updateLaunchUrl({ styleId: null });
   }
 
   function openStyleSheet(styleId: string): void {
@@ -336,7 +383,7 @@ function App() {
 
       setSheetOpen(false);
       setCurrentJobId(response.job_id);
-      updateJobInUrl(response.job_id);
+      updateLaunchUrl({ jobId: response.job_id, styleId: null });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не удалось поставить задачу в очередь.");
     } finally {
@@ -349,7 +396,7 @@ function App() {
     setCurrentJob(null);
     setFeaturedResultIndex(0);
     setError("");
-    updateJobInUrl(null);
+    updateLaunchUrl({ jobId: null });
   }
 
   return (

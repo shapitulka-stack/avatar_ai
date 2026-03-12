@@ -11,6 +11,7 @@ from urllib.parse import parse_qsl
 import httpx
 
 from app.config import Settings
+from app.telegram_links import build_keyboard_button_payload
 
 
 class TelegramAuthError(RuntimeError):
@@ -66,29 +67,27 @@ class TelegramBotService:
         return {"ok": True, "handled": False}
 
     async def send_welcome(self, chat_id: int) -> None:
-        webapp_url = self.settings.public_telegram_webapp_url
         reply_markup = {
             "inline_keyboard": [
                 [
-                    {
-                        "text": "Открыть ленту",
-                        "web_app": {"url": webapp_url},
-                    }
+                    build_keyboard_button_payload(self.settings, text="Открыть каталог")
                 ]
             ]
         }
         await self._send_message(
             chat_id,
-            "Откройте avatar_ai прямо внутри Telegram: в мини-приложении есть лента шаблонов, saved face profiles и очередь задач. Если удобнее, можно отправить фото в чат и выбрать шаблон здесь.",
+            "Откройте avatar_ai прямо внутри Telegram: внутри каталог шаблонов, сохраненное лицо и быстрый запуск аватарок.",
             reply_markup,
         )
 
     async def send_generation_ready(self, user_id: int, job_id: str) -> None:
-        result_url = f"{self.settings.public_telegram_webapp_url}?job={job_id}"
         reply_markup = {
-            "inline_keyboard": [[{"text": "Открыть результат", "web_app": {"url": result_url}}]]
+            "inline_keyboard": [
+                [build_keyboard_button_payload(self.settings, text="Открыть результат", job_id=job_id)],
+                [build_keyboard_button_payload(self.settings, text="Открыть каталог")],
+            ]
         }
-        await self._send_message(user_id, "Ваш рендер готов.", reply_markup)
+        await self._send_message(user_id, "Аватар готов. Открывайте результат или возвращайтесь в каталог.", reply_markup)
 
     async def _send_message(self, chat_id: int, text: str, reply_markup: dict[str, Any] | None = None) -> None:
         if not self.settings.telegram_bot_token:

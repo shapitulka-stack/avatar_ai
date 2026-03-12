@@ -4,6 +4,7 @@
 
 - One FastAPI backend service
 - One Telegram-first React mini app
+- Telegram bot and channel-friendly links that open the mini app on a specific template
 - One browser debug/admin preview using guest sessions
 - Static template feed from YAML in `data/styles`
 - Saved face profiles per Telegram user or guest session
@@ -13,6 +14,7 @@
 - Free-only queue limits and queue metadata in API responses
 - Mock image generation for end-to-end product flow testing
 - Telegram bot entrypoint that opens the mini app and returns users to results
+- Bot `/top` flow for top templates and deep links into the catalog
 
 ## Out of scope
 

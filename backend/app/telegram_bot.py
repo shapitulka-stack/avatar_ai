@@ -1,32 +1,109 @@
-﻿import asyncio
+import asyncio
 import logging
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 
 import httpx
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputFile, Update, WebAppInfo
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters
 
 from app.config import Settings, get_settings
+from app.telegram_links import build_direct_mini_app_link, build_mini_app_url
 
 
 STYLE_PREFIX = "style:"
+TOP_PICK_PREFIX = "show-top"
+TOP_STYLE_IDS = ("anime-neon", "cinematic-pro", "founder-brand", "velvet-royal")
 logger = logging.getLogger("avatar_ai.telegram_bot")
 
 
-def _studio_markup(settings: Settings) -> InlineKeyboardMarkup:
-    webapp_url = settings.public_telegram_webapp_url
+def _app_button(settings: Settings, text: str, *, style_id: str | None = None, job_id: str | None = None) -> InlineKeyboardButton:
+    direct_link = build_direct_mini_app_link(settings, style_id=style_id, job_id=job_id)
+    if direct_link:
+        return InlineKeyboardButton(text, url=direct_link)
+    return InlineKeyboardButton(text, web_app=WebAppInfo(url=build_mini_app_url(settings, style_id=style_id, job_id=job_id)))
+
+
+def _studio_markup(settings: Settings, *, style_id: str | None = None, job_id: str | None = None) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("Открыть ленту", web_app=WebAppInfo(url=webapp_url))]]
+        [[_app_button(settings, "Открыть каталог" if style_id is None and job_id is None else "Открыть", style_id=style_id, job_id=job_id)]]
     )
+
+
+def _extract_start_target(raw_args: list[str]) -> tuple[str | None, str | None]:
+    if not raw_args:
+        return None, None
+
+    raw_value = (raw_args[0] or "").strip()
+    if raw_value.startswith("style-"):
+        return raw_value.removeprefix("style-"), None
+    if raw_value.startswith("job-"):
+        return None, raw_value.removeprefix("job-")
+    return None, None
+
+
+def _pick_top_styles(items: list[dict[str, Any]], limit: int = 4) -> list[dict[str, Any]]:
+    selected: list[dict[str, Any]] = []
+    items_by_id = {str(item["id"]): item for item in items}
+
+    for style_id in TOP_STYLE_IDS:
+        item = items_by_id.get(style_id)
+        if item is not None:
+            selected.append(item)
+
+    for item in items:
+        if item not in selected:
+            selected.append(item)
+        if len(selected) >= limit:
+            break
+
+    return selected[:limit]
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     settings = get_settings()
+    style_id, job_id = _extract_start_target(context.args)
+
+    if job_id:
+        await _reply(
+            update,
+            "Откройте mini app, чтобы посмотреть готовый результат.",
+            reply_markup=_studio_markup(settings, job_id=job_id),
+        )
+        return
+
+    if style_id:
+        items = await _fetch_styles(settings)
+        style = next((item for item in items if item["id"] == style_id), None)
+        if style is not None:
+            await _reply(
+                update,
+                f"Открывайте каталог сразу на шаблоне «{style['name']}» и жмите «Вставить себя».",
+                reply_markup=_studio_markup(settings, style_id=style_id),
+            )
+            return
+
     await _reply(
         update,
-        "Откройте mini app прямо внутри Telegram: там есть лента шаблонов, сохраненные лица и история задач. Если удобнее, можно по-прежнему отправить фото в этот чат и выбрать шаблон здесь.",
-        reply_markup=_studio_markup(settings),
+        "Откройте mini app прямо внутри Telegram: внутри каталог шаблонов, сохраненные лица и быстрый запуск аватарок.",
+        reply_markup=InlineKeyboardMarkup(
+            [
+                [_app_button(settings, "Открыть каталог")],
+                [InlineKeyboardButton("Топ шаблоны", callback_data=TOP_PICK_PREFIX)],
+            ]
+        ),
+    )
+
+
+async def top(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    settings = get_settings()
+    items = _pick_top_styles(await _fetch_styles(settings))
+    keyboard = [[_app_button(settings, str(item["name"]), style_id=str(item["id"]))] for item in items]
+    await _reply(
+        update,
+        "Топ шаблоны на сейчас. Нажмите на любой, и каталог откроется сразу на нужной карточке.",
+        reply_markup=InlineKeyboardMarkup(keyboard),
     )
 
 
@@ -52,7 +129,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     context.user_data["pending_photo_path"] = str(photo_path)
     style_items = await _fetch_styles(settings)
     context.user_data["style_lookup"] = {item["id"]: item["name"] for item in style_items}
-    keyboard = [[InlineKeyboardButton(item["name"], callback_data=f"{STYLE_PREFIX}{item['id']}")] for item in style_items]
+    keyboard = [[InlineKeyboardButton(str(item["name"]), callback_data=f"{STYLE_PREFIX}{item['id']}")] for item in style_items]
     await _reply(
         update,
         "Фото сохранено. Выберите стиль, и я отправлю готовые аватары сюда же.",
@@ -81,7 +158,22 @@ async def handle_style_choice(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     chat_id = query.message.chat_id if query.message else update.effective_chat.id
     await query.edit_message_text(f"Запуск для «{style_name}» поставлен в очередь. ID задачи: {job['job_id']}.")
-    asyncio.create_task(_poll_and_deliver(context.application, chat_id, job["job_id"], style_name))
+    asyncio.create_task(_poll_and_deliver(context.application, chat_id, str(job["job_id"]), str(style_name)))
+
+
+async def handle_ui_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    if query is None or query.data != TOP_PICK_PREFIX:
+        return
+
+    await query.answer()
+    settings = get_settings()
+    items = _pick_top_styles(await _fetch_styles(settings))
+    keyboard = [[_app_button(settings, str(item["name"]), style_id=str(item["id"]))] for item in items]
+    await query.edit_message_text(
+        "Топ шаблоны на сейчас. Выберите шаблон, и mini app откроется сразу на нем.",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
 
 
 async def _poll_and_deliver(application: Application, chat_id: int, job_id: str, style_name: str) -> None:
@@ -156,7 +248,10 @@ def build_application(settings: Settings | None = None, *, use_updater: bool = T
     application = builder.build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("app", start))
+    application.add_handler(CommandHandler("catalog", start))
+    application.add_handler(CommandHandler("top", top))
     application.add_handler(CommandHandler("styles", styles))
+    application.add_handler(CallbackQueryHandler(handle_ui_callback, pattern=f"^{TOP_PICK_PREFIX}$"))
     application.add_handler(CallbackQueryHandler(handle_style_choice, pattern=f"^{STYLE_PREFIX}"))
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     return application
@@ -174,7 +269,7 @@ async def start_polling_application(application: Application) -> None:
 async def start_webhook_application(application: Application, settings: Settings) -> None:
     webhook_url = settings.telegram_webhook_url
     if webhook_url is None:
-        raise RuntimeError('Telegram webhook URL is not configured.')
+        raise RuntimeError("Telegram webhook URL is not configured.")
 
     await application.initialize()
     await application.start()
@@ -183,7 +278,7 @@ async def start_webhook_application(application: Application, settings: Settings
         allowed_updates=Update.ALL_TYPES,
         secret_token=settings.telegram_webhook_secret_value,
     )
-    logger.info('Telegram webhook configured at %s', webhook_url)
+    logger.info("Telegram webhook configured at %s", webhook_url)
 
 
 async def stop_polling_application(application: Application) -> None:
@@ -197,7 +292,7 @@ async def stop_polling_application(application: Application) -> None:
 async def stop_webhook_application(application: Application) -> None:
     await application.stop()
     await application.shutdown()
-    logger.info('Telegram webhook stopped')
+    logger.info("Telegram webhook stopped")
 
 
 def main() -> None:
@@ -207,5 +302,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
