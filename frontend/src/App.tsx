@@ -484,6 +484,10 @@ function App() {
                 {!filePreview && !savedFacePreview ? <span className="face-entry-button__dot" /> : null}
               </span>
             </button>
+
+            <div className="gallery-status-pill">
+              <span>{styles.length} шаблонов</span>
+            </div>
           </div>
 
           {error ? <div className="error-banner gallery-error">{error}</div> : null}
@@ -546,11 +550,23 @@ function App() {
                     {!filePreview && savedFacePreview ? <img src={assetUrl(savedFacePreview)} alt="Ваше лицо" /> : null}
                     {!filePreview && !savedFacePreview ? <span className="face-entry-button__dot" /> : null}
                   </button>
+
+                  <div className="style-preview-modal__badge">
+                    <span>{hasFaceSource ? "Твое лицо готово" : "Добавь лицо"}</span>
+                  </div>
                 </div>
 
                 <div className="style-preview-modal__body">
-                  <h2>{previewStyle.name}</h2>
-                  <p>{hasFaceSource ? "Нажми и сделаем аву по этому шаблону." : "Сначала выбери лицо, потом вставим себя в шаблон."}</p>
+                  <div className="style-preview-modal__copy">
+                    <h2>{previewStyle.name}</h2>
+                    <p>{previewStyle.description}</p>
+                  </div>
+
+                  <div className="style-preview-modal__tags">
+                    {previewStyle.tags.slice(0, 3).map((tag) => (
+                      <span key={tag}>{tag}</span>
+                    ))}
+                  </div>
 
                   <button
                     type="button"
