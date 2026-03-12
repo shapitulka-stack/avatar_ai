@@ -106,8 +106,8 @@ function App() {
   const [currentJobId, setCurrentJobId] = useState<string>(currentJobIdFromUrl());
   const [currentJob, setCurrentJob] = useState<JobDetail | null>(null);
   const [featuredResultIndex, setFeaturedResultIndex] = useState<number>(0);
-  const [pendingStyleId, setPendingStyleId] = useState<string>("");
-  const [setupOpen, setSetupOpen] = useState<boolean>(false);
+  const [sheetStyleId, setSheetStyleId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [submittingStyleId, setSubmittingStyleId] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -117,6 +117,7 @@ function App() {
   const isQueueView = Boolean(currentJob && PENDING_STATUSES.has(currentJob.status));
   const isResultView = Boolean(currentJob && !PENDING_STATUSES.has(currentJob.status));
   const currentStyle = styleById.get(currentJob?.style_id || selectedStyleId) || null;
+  const activeSheetStyle = sheetStyleId ? styleById.get(sheetStyleId) || null : null;
   const featuredResult: ResultAsset | null = currentJob?.results[featuredResultIndex] || currentJob?.results[0] || null;
   const portraitPreview = filePreview || (currentJob?.input_preview_url ? assetUrl(currentJob.input_preview_url) : "");
 
@@ -248,6 +249,21 @@ function App() {
     }
   }
 
+  function openStyleSheet(styleId: string): void {
+    setSelectedStyleId(styleId);
+    setSheetStyleId(styleId);
+    setSheetOpen(true);
+  }
+
+  function openFaceSheet(): void {
+    setSheetStyleId(null);
+    setSheetOpen(true);
+  }
+
+  function closeSheet(): void {
+    setSheetOpen(false);
+  }
+
   async function submitStyle(styleId: string): Promise<void> {
     setSelectedStyleId(styleId);
     setError("");
@@ -268,8 +284,7 @@ function App() {
         setGuestSessionId(response.guest_session_id);
       }
 
-      setPendingStyleId("");
-      setSetupOpen(false);
+      setSheetOpen(false);
       setCurrentJobId(response.job_id);
       updateJobInUrl(response.job_id);
     } catch (reason) {
@@ -277,18 +292,6 @@ function App() {
     } finally {
       setSubmittingStyleId("");
     }
-  }
-
-  async function handleStyleClick(styleId: string): Promise<void> {
-    setSelectedStyleId(styleId);
-
-    if (!hasFaceSource) {
-      setPendingStyleId(styleId);
-      setSetupOpen(true);
-      return;
-    }
-
-    await submitStyle(styleId);
   }
 
   function dismissCurrentJob(): void {
@@ -331,21 +334,6 @@ function App() {
               <span>Лимит</span>
               <strong>{currentJob.user_pending_jobs}/{currentJob.max_pending_per_user}</strong>
             </div>
-          </div>
-
-          <div className="focus-preview">
-            {currentStyle ? (
-              <div className="focus-preview__card">
-                <img src={assetUrl(currentStyle.preview_image)} alt={currentStyle.name} decoding="async" />
-                <span>Шаблон</span>
-              </div>
-            ) : null}
-            {portraitPreview ? (
-              <div className="focus-preview__card">
-                <img src={portraitPreview} alt="Лицо" decoding="async" />
-                <span>Лицо</span>
-              </div>
-            ) : null}
           </div>
 
           <div className="focus-actions">
@@ -433,13 +421,25 @@ function App() {
 
       {!isQueueView && !isResultView ? (
         <>
+          <div className="gallery-topbar">
+            <button type="button" className="face-entry-button" onClick={openFaceSheet}>
+              {filePreview ? <img src={filePreview} alt="Ваше лицо" /> : <span className="face-entry-button__dot" />}
+              <strong>Мое лицо</strong>
+            </button>
+          </div>
+
           {error ? <div className="error-banner gallery-error">{error}</div> : null}
 
           <section className="feed-gallery">
             {styles.map((style) => {
               const isSelected = selectedStyleId === style.id;
               return (
-                <article key={style.id} className={`feed-card feed-card--gallery ${isSelected ? "is-selected" : ""}`}>
+                <button
+                  type="button"
+                  key={style.id}
+                  className={`feed-card feed-card--gallery ${isSelected ? "is-selected" : ""}`}
+                  onClick={() => openStyleSheet(style.id)}
+                >
                   <div className="feed-card__media">
                     <img
                       src={assetUrl(style.preview_image)}
@@ -453,34 +453,41 @@ function App() {
                     <div className="feed-card__copy">
                       <h3>{style.name}</h3>
                     </div>
-                    <button
-                      type="button"
-                      className="card-action-button"
-                      disabled={Boolean(submittingStyleId)}
-                      onClick={() => void handleStyleClick(style.id)}
-                    >
-                      {submittingStyleId === style.id ? "Ставим..." : "Вставить себя"}
-                    </button>
                   </div>
-                </article>
+                </button>
               );
             })}
           </section>
 
-          {setupOpen ? (
-            <div className="setup-modal-backdrop" onClick={() => setSetupOpen(false)}>
-              <section className="setup-modal" onClick={(event) => event.stopPropagation()}>
-                <div className="setup-modal__head">
-                  <div>
-                    <span className="eyebrow">Добавь лицо</span>
-                    <h2>Чтобы вставить себя</h2>
+          {sheetOpen ? (
+            <div className="sheet-backdrop" onClick={closeSheet}>
+              <section className="bottom-sheet" onClick={(event) => event.stopPropagation()}>
+                <div className="bottom-sheet__grabber" />
+
+                {activeSheetStyle ? (
+                  <div className="sheet-style-preview">
+                    <img src={assetUrl(activeSheetStyle.preview_image)} alt={activeSheetStyle.name} decoding="async" />
                   </div>
-                  <button type="button" className="ghost-button" onClick={() => setSetupOpen(false)}>
-                    Закрыть
-                  </button>
+                ) : null}
+
+                <div className="bottom-sheet__head">
+                  <div>
+                    <span className="eyebrow">{activeSheetStyle ? "Шаблон" : "Мое лицо"}</span>
+                    <h2>{activeSheetStyle ? activeSheetStyle.name : "Выбери лицо"}</h2>
+                  </div>
                 </div>
 
-                <div className="setup-modal__body">
+                <div className="sheet-face-status">
+                  <div className="sheet-face-status__chip">
+                    {filePreview ? <img src={filePreview} alt="Выбранное лицо" /> : <span className="sheet-face-status__placeholder" />}
+                    <div>
+                      <strong>{hasFaceSource ? "Лицо выбрано" : "Лицо не выбрано"}</strong>
+                      <span>{filePreview ? "Временное фото на этот запуск" : "Можно сохранить свое лицо или загрузить другое"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bottom-sheet__body">
                   <FaceProfilePanel
                     guestSessionId={isTelegram ? undefined : guestSessionId}
                     telegramInitData={isTelegram ? telegramInitData : undefined}
@@ -499,7 +506,7 @@ function App() {
                         <img src={filePreview} alt="Другое лицо" decoding="async" />
                         <div className="mini-override-panel__actions">
                           <label className="ghost-button">
-                            Заменить
+                            Сменить
                             <input type="file" accept="image/*" onChange={onFileChange} />
                           </label>
                           <button type="button" className="ghost-button" onClick={clearTemporaryUpload}>
@@ -516,18 +523,21 @@ function App() {
                   </section>
                 </div>
 
-                <div className="setup-modal__footer">
-                  <button type="button" className="secondary-button" onClick={() => setSetupOpen(false)}>
-                    Пока нет
-                  </button>
-                  <button
-                    type="button"
-                    className="primary-button"
-                    disabled={!hasFaceSource || !pendingStyleId || Boolean(submittingStyleId)}
-                    onClick={() => void submitStyle(pendingStyleId)}
-                  >
-                    {submittingStyleId === pendingStyleId ? "Ставим..." : "Продолжить"}
-                  </button>
+                <div className="bottom-sheet__footer">
+                  {activeSheetStyle ? (
+                    <button
+                      type="button"
+                      className="primary-button"
+                      disabled={!hasFaceSource || Boolean(submittingStyleId)}
+                      onClick={() => void submitStyle(activeSheetStyle.id)}
+                    >
+                      {submittingStyleId === activeSheetStyle.id ? "Ставим..." : "Вставить себя"}
+                    </button>
+                  ) : (
+                    <button type="button" className="secondary-button" onClick={closeSheet}>
+                      Готово
+                    </button>
+                  )}
                 </div>
               </section>
             </div>
