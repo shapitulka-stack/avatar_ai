@@ -20,7 +20,7 @@ services:
       - key: STORAGE_BACKEND
         value: local
       - key: TELEGRAM_BOT_POLLING_ENABLED
-        value: "true"
+        value: "false"
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: LOG_LEVEL

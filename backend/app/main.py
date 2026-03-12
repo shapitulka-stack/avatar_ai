@@ -2,9 +2,10 @@
 import logging
 from pathlib import Path
 
-from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse, Response
+from telegram import Update
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session
 from starlette.datastructures import Headers
@@ -56,7 +57,13 @@ from app.models import (
 )
 from app.storage import StorageError, get_storage
 from app.style_store import StyleNotFoundError, get_style, public_styles
-from app.telegram_bot import build_application as build_telegram_application, start_polling_application, stop_polling_application
+from app.telegram_bot import (
+    build_application as build_telegram_application,
+    start_polling_application,
+    start_webhook_application,
+    stop_polling_application,
+    stop_webhook_application,
+)
 from app.telegram_client import TelegramAuthError, TelegramBotService
 from app.telemetry import monitoring_status, setup_logging
 from app.worker import process_next_job
@@ -92,13 +99,23 @@ if FRONTEND_ASSET_DIR.exists():
 async def startup() -> None:
     create_db_and_tables()
     app.state.telegram_application = None
-    if settings.telegram_bot_polling_enabled and settings.telegram_bot_token:
-        try:
-            telegram_application = build_telegram_application(settings)
+    app.state.telegram_transport = None
+    if not settings.telegram_bot_token:
+        return
+
+    try:
+        if settings.telegram_bot_polling_enabled:
+            telegram_application = build_telegram_application(settings, use_updater=True)
             await start_polling_application(telegram_application)
             app.state.telegram_application = telegram_application
-        except Exception:  # noqa: BLE001
-            logger.exception("Telegram polling failed to start")
+            app.state.telegram_transport = 'polling'
+        elif settings.telegram_webhook_enabled:
+            telegram_application = build_telegram_application(settings, use_updater=False)
+            await start_webhook_application(telegram_application, settings)
+            app.state.telegram_application = telegram_application
+            app.state.telegram_transport = 'webhook'
+    except Exception:  # noqa: BLE001
+        logger.exception('Telegram bot failed to start')
 
 
 @app.on_event("shutdown")
@@ -106,10 +123,14 @@ async def shutdown() -> None:
     telegram_application = getattr(app.state, "telegram_application", None)
     if telegram_application is None:
         return
+
     try:
-        await stop_polling_application(telegram_application)
+        if getattr(app.state, 'telegram_transport', None) == 'webhook':
+            await stop_webhook_application(telegram_application)
+        else:
+            await stop_polling_application(telegram_application)
     except Exception:  # noqa: BLE001
-        logger.exception("Telegram polling failed to stop cleanly")
+        logger.exception('Telegram bot failed to stop cleanly')
 
 
 def resolve_request_identity(
@@ -153,6 +174,23 @@ def health(settings: Settings = Depends(get_settings)) -> dict[str, str]:
         "model": settings.llm_model,
         "generation_backend": settings.generation_backend,
     }
+
+
+@app.post("/api/telegram/webhook", include_in_schema=False)
+async def telegram_webhook(request: Request, settings: Settings = Depends(get_settings)) -> Response:
+    telegram_application = getattr(app.state, 'telegram_application', None)
+    if telegram_application is None or not settings.telegram_webhook_enabled:
+        raise HTTPException(status_code=503, detail='Telegram webhook is not configured.')
+
+    expected_secret = settings.telegram_webhook_secret_value
+    if expected_secret:
+        provided_secret = request.headers.get('X-Telegram-Bot-Api-Secret-Token')
+        if provided_secret != expected_secret:
+            raise HTTPException(status_code=403, detail='Invalid Telegram webhook secret.')
+
+    payload = await request.json()
+    await telegram_application.update_queue.put(Update.de_json(data=payload, bot=telegram_application.bot))
+    return Response(status_code=200)
 
 
 @app.get("/api/avatars")

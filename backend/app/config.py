@@ -1,4 +1,5 @@
-﻿from functools import lru_cache
+﻿import hashlib
+from functools import lru_cache
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -80,6 +81,7 @@ class Settings(BaseSettings):
     telegram_bot_token: str | None = None
     telegram_webapp_url: str | None = None
     telegram_webhook_secret: str | None = None
+    telegram_webhook_path: str = '/api/telegram/webhook'
     telegram_init_data_ttl_seconds: int = 86_400
     telegram_bot_polling_enabled: bool = False
     bot_temp_dir: Path = DEFAULT_BOT_TEMP_DIR
@@ -150,6 +152,27 @@ class Settings(BaseSettings):
         if render_url:
             return f"{render_url}/studio"
         return self.public_frontend_base_url
+
+    @property
+    def telegram_webhook_enabled(self) -> bool:
+        if self.telegram_bot_polling_enabled or not self.telegram_bot_token:
+            return False
+        return self.public_backend_base_url.startswith('https://')
+
+    @property
+    def telegram_webhook_secret_value(self) -> str | None:
+        explicit_secret = (self.telegram_webhook_secret or '').strip()
+        if explicit_secret:
+            return explicit_secret
+        if not self.telegram_bot_token:
+            return None
+        return hashlib.sha256(self.telegram_bot_token.encode('utf-8')).hexdigest()
+
+    @property
+    def telegram_webhook_url(self) -> str | None:
+        if not self.telegram_webhook_enabled:
+            return None
+        return f"{self.public_backend_base_url}{self.telegram_webhook_path}"
 
     def allowed_cors_origins(self) -> list[str]:
         defaults = {

@@ -145,12 +145,15 @@ async def _reply(update: Update, text: str, reply_markup: InlineKeyboardMarkup |
         await message.reply_text(text, reply_markup=reply_markup)
 
 
-def build_application(settings: Settings | None = None) -> Application:
+def build_application(settings: Settings | None = None, *, use_updater: bool = True) -> Application:
     resolved_settings = settings or get_settings()
     if not resolved_settings.telegram_bot_token:
         raise RuntimeError("Set TELEGRAM_BOT_TOKEN before running the Telegram bot.")
 
-    application = Application.builder().token(resolved_settings.telegram_bot_token).build()
+    builder = Application.builder().token(resolved_settings.telegram_bot_token)
+    if not use_updater:
+        builder = builder.updater(None)
+    application = builder.build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("app", start))
     application.add_handler(CommandHandler("styles", styles))
@@ -168,12 +171,33 @@ async def start_polling_application(application: Application) -> None:
     logger.info("Telegram polling started")
 
 
+async def start_webhook_application(application: Application, settings: Settings) -> None:
+    webhook_url = settings.telegram_webhook_url
+    if webhook_url is None:
+        raise RuntimeError('Telegram webhook URL is not configured.')
+
+    await application.initialize()
+    await application.start()
+    await application.bot.set_webhook(
+        url=webhook_url,
+        allowed_updates=Update.ALL_TYPES,
+        secret_token=settings.telegram_webhook_secret_value,
+    )
+    logger.info('Telegram webhook configured at %s', webhook_url)
+
+
 async def stop_polling_application(application: Application) -> None:
     if application.updater is not None:
         await application.updater.stop()
     await application.stop()
     await application.shutdown()
     logger.info("Telegram polling stopped")
+
+
+async def stop_webhook_application(application: Application) -> None:
+    await application.stop()
+    await application.shutdown()
+    logger.info('Telegram webhook stopped')
 
 
 def main() -> None:
