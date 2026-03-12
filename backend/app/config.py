@@ -87,6 +87,10 @@ class Settings(BaseSettings):
     telegram_init_data_ttl_seconds: int = 86_400
     telegram_bot_polling_enabled: bool = False
     bot_temp_dir: Path = DEFAULT_BOT_TEMP_DIR
+    telegram_account_api_id: int | None = None
+    telegram_account_api_hash: str | None = None
+    telegram_account_phone: str | None = None
+    telegram_account_session_file: Path = DEFAULT_RUNTIME_DIR / "telegram_account.session"
 
     github_api_url: str = "https://api.github.com"
     github_token: str | None = None

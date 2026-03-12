@@ -5,6 +5,7 @@ boto3
 pydantic-settings
 python-multipart
 python-telegram-bot
+Telethon
 PyYAML
 sqlmodel
 psycopg2-binary

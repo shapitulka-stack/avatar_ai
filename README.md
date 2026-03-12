@@ -58,6 +58,30 @@ TELEGRAM_MINI_APP_SHORT_NAME=your_mini_app_short_name
 
 With both values set, the bot can generate Telegram direct links that open the mini app on a specific template or result.
 
+7. Optional but important if you want Codex to manage a real Telegram user account instead of only the bot:
+
+```env
+TELEGRAM_ACCOUNT_API_ID=your_api_id
+TELEGRAM_ACCOUNT_API_HASH=your_api_hash
+TELEGRAM_ACCOUNT_PHONE=your_phone
+TELEGRAM_ACCOUNT_SESSION_FILE=runtime/telegram_account.session
+```
+
+Then log in once and reuse the saved session:
+
+```bash
+cd backend
+.venv\Scripts\activate
+python scripts/telegram_account_cli.py login
+```
+
+After that, you can create a public channel, add the bot as admin, and publish posts from code:
+
+```bash
+python scripts/telegram_account_cli.py create-channel --title "Avatar AI Top" --about "Топ шаблоны для AI-аватарок." --username avatar_ai_top --bot-username ai_ava_666_bot
+python scripts/telegram_account_cli.py send-post --target @avatar_ai_top --text "Первый пост" --pin
+```
+
 ## Core API for the current MVP
 
 - `GET /api/templates`
@@ -106,4 +130,4 @@ Before Render can deploy, this repo must be pushed to GitHub, GitLab, or Bitbuck
 - `/top` sends a short list of top templates with buttons that open the mini app on the selected template
 - `/start style-anime-neon` opens the catalog on a specific template
 - Result notifications from the bot open the finished job directly inside the mini app
-- If `TELEGRAM_BOT_USERNAME` and `TELEGRAM_MINI_APP_SHORT_NAME` are configured, the same links can be reused in channel posts
+- If `TELEGRAM_BOT_USERNAME` is configured, the same links can be reused in channel posts through the bot's Main Mini App
