@@ -81,28 +81,20 @@ function FaceProfilePanel(props: FaceProfilePanelProps) {
 
   return (
     <section className="face-panel">
-      <div className="section-head compact">
+      <div className="face-panel__header">
         <div>
-          <span className="eyebrow">Лицо профиля</span>
-          <h3>{profiles.length > 0 ? "Сохраненные лица для генерации" : "Сначала сохраните одно лицо"}</h3>
+          <span className="eyebrow">Мои лица</span>
+          <h3>{profiles.length > 0 ? "Выбери лицо для подстановки" : "Сначала добавь одно лицо"}</h3>
         </div>
-        <p>
-          {profiles.length > 0
-            ? "Дальше можно запускать шаблоны без новой загрузки фото. Для друга или другого человека просто добавьте еще один профиль."
-            : "Первый раз человек загружает лицо в профиль, а дальше лента шаблонов уже работает без повторной загрузки."}
-        </p>
-      </div>
 
-      <div className="face-panel__actions">
         <label className="ghost-button face-upload-button">
-          {saving ? "Сохраняем лицо..." : profiles.length > 0 ? "Добавить еще лицо" : "Загрузить лицо в профиль"}
+          {saving ? "Сохраняем..." : profiles.length > 0 ? "Добавить лицо" : "Загрузить лицо"}
           <input type="file" accept="image/*" onChange={(event) => void handleProfileUpload(event)} disabled={saving} />
         </label>
-        <span className="micro-pill">Free queue alpha</span>
       </div>
 
       {loading ? <div className="history-empty">Загружаем сохраненные лица...</div> : null}
-      {!loading && profiles.length === 0 ? <div className="history-empty">Пока нет ни одного сохраненного лица.</div> : null}
+      {!loading && profiles.length === 0 ? <div className="history-empty">Пока нет сохраненных лиц.</div> : null}
       {error ? <div className="error-banner">{error}</div> : null}
 
       <div className="face-profile-grid">
