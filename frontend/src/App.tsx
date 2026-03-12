@@ -102,6 +102,7 @@ function App() {
   const [filePreview, setFilePreview] = useState<string>("");
   const [savedFacePreview, setSavedFacePreview] = useState<string>("");
   const [selectedStyleId, setSelectedStyleId] = useState<string>("");
+  const [previewStyleId, setPreviewStyleId] = useState<string | null>(null);
   const [selectedFaceProfileId, setSelectedFaceProfileId] = useState<string>("");
   const [guestSessionId, setGuestSessionId] = useState<string>(() => localStorage.getItem(GUEST_SESSION_KEY) || "");
   const [currentJobId, setCurrentJobId] = useState<string>(currentJobIdFromUrl());
@@ -118,6 +119,7 @@ function App() {
   const isQueueView = Boolean(currentJob && PENDING_STATUSES.has(currentJob.status));
   const isResultView = Boolean(currentJob && !PENDING_STATUSES.has(currentJob.status));
   const currentStyle = styleById.get(currentJob?.style_id || selectedStyleId) || null;
+  const previewStyle = previewStyleId ? styleById.get(previewStyleId) || null : null;
   const activeSheetStyle = sheetStyleId ? styleById.get(sheetStyleId) || null : null;
   const featuredResult: ResultAsset | null = currentJob?.results[featuredResultIndex] || currentJob?.results[0] || null;
   const portraitPreview = filePreview || savedFacePreview || (currentJob?.input_preview_url ? assetUrl(currentJob.input_preview_url) : "");
@@ -286,9 +288,19 @@ function App() {
     setSavedFacePreview(previewUrl || "");
   }
 
+  function openStylePreview(styleId: string): void {
+    setSelectedStyleId(styleId);
+    setPreviewStyleId(styleId);
+  }
+
+  function closeStylePreview(): void {
+    setPreviewStyleId(null);
+  }
+
   function openStyleSheet(styleId: string): void {
     setSelectedStyleId(styleId);
     setSheetStyleId(styleId);
+    setPreviewStyleId(null);
     setSheetOpen(true);
   }
 
@@ -305,6 +317,7 @@ function App() {
     setSelectedStyleId(styleId);
     setError("");
     setSubmittingStyleId(styleId);
+    setPreviewStyleId(null);
 
     try {
       const response = await createJob({
@@ -458,26 +471,32 @@ function App() {
 
       {!isQueueView && !isResultView ? (
         <>
-            <div className="gallery-topbar">
-              <button type="button" className="face-entry-button" onClick={openFaceSheet}>
+          <div className="gallery-topbar">
+            <button
+              type="button"
+              className="face-entry-button face-entry-button--icon"
+              onClick={openFaceSheet}
+              aria-label="Мое лицо"
+            >
+              <span className="face-entry-button__ring">
                 {filePreview ? <img src={filePreview} alt="Ваше лицо" /> : null}
                 {!filePreview && savedFacePreview ? <img src={assetUrl(savedFacePreview)} alt="Ваше лицо" /> : null}
                 {!filePreview && !savedFacePreview ? <span className="face-entry-button__dot" /> : null}
-                <strong>Мое лицо</strong>
-              </button>
-            </div>
+              </span>
+            </button>
+          </div>
 
           {error ? <div className="error-banner gallery-error">{error}</div> : null}
 
           <section className="feed-gallery">
             {styles.map((style) => {
-              const isSelected = selectedStyleId === style.id;
+              const isSelected = previewStyleId === style.id;
               return (
                 <article key={style.id} className={`feed-card feed-card--gallery ${isSelected ? "is-selected" : ""}`}>
                   <button
                     type="button"
                     className="feed-card__tap"
-                    onClick={() => setSelectedStyleId(style.id)}
+                    onClick={() => openStylePreview(style.id)}
                   >
                     <div className="feed-card__media">
                       <img
@@ -494,29 +513,63 @@ function App() {
                       </div>
                     </div>
                   </button>
-
-                  {isSelected ? (
-                    <div className="feed-card__actionbar">
-                      <button
-                        type="button"
-                        className="card-action-button"
-                        disabled={Boolean(submittingStyleId)}
-                        onClick={() => {
-                          if (hasFaceSource) {
-                            void submitStyle(style.id);
-                            return;
-                          }
-                          openStyleSheet(style.id);
-                        }}
-                      >
-                        {submittingStyleId === style.id ? "Ставим..." : "Вставить себя"}
-                      </button>
-                    </div>
-                  ) : null}
                 </article>
               );
             })}
           </section>
+
+          {previewStyle ? (
+            <div className="style-preview-backdrop" onClick={closeStylePreview}>
+              <section className="style-preview-modal" onClick={(event) => event.stopPropagation()}>
+                <button
+                  type="button"
+                  className="style-preview-modal__close"
+                  onClick={closeStylePreview}
+                  aria-label="Закрыть"
+                >
+                  ×
+                </button>
+
+                <div className="style-preview-modal__media">
+                  <img src={assetUrl(previewStyle.preview_image)} alt={previewStyle.name} decoding="async" />
+
+                  <button
+                    type="button"
+                    className="style-preview-modal__face"
+                    onClick={() => {
+                      closeStylePreview();
+                      openFaceSheet();
+                    }}
+                    aria-label="Выбрать лицо"
+                  >
+                    {filePreview ? <img src={filePreview} alt="Ваше лицо" /> : null}
+                    {!filePreview && savedFacePreview ? <img src={assetUrl(savedFacePreview)} alt="Ваше лицо" /> : null}
+                    {!filePreview && !savedFacePreview ? <span className="face-entry-button__dot" /> : null}
+                  </button>
+                </div>
+
+                <div className="style-preview-modal__body">
+                  <h2>{previewStyle.name}</h2>
+                  <p>{hasFaceSource ? "Нажми и сделаем аву по этому шаблону." : "Сначала выбери лицо, потом вставим себя в шаблон."}</p>
+
+                  <button
+                    type="button"
+                    className="card-action-button style-preview-modal__cta"
+                    disabled={Boolean(submittingStyleId)}
+                    onClick={() => {
+                      if (hasFaceSource) {
+                        void submitStyle(previewStyle.id);
+                        return;
+                      }
+                      openStyleSheet(previewStyle.id);
+                    }}
+                  >
+                    {submittingStyleId === previewStyle.id ? "Ставим..." : "Вставить себя"}
+                  </button>
+                </div>
+              </section>
+            </div>
+          ) : null}
 
           {sheetOpen ? (
             <div className="sheet-backdrop" onClick={closeSheet}>
