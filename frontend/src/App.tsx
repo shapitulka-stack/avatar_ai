@@ -1,6 +1,6 @@
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 
-import { assetUrl, createJob, fetchJob, fetchStyles } from "./api";
+import { assetUrl, createJob, fetchFaceProfiles, fetchJob, fetchStyles } from "./api";
 import FaceProfilePanel from "./FaceProfilePanel";
 import type { JobDetail, ResultAsset, StyleCard } from "./types";
 
@@ -100,6 +100,7 @@ function App() {
   const [styles, setStyles] = useState<StyleCard[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string>("");
+  const [savedFacePreview, setSavedFacePreview] = useState<string>("");
   const [selectedStyleId, setSelectedStyleId] = useState<string>("");
   const [selectedFaceProfileId, setSelectedFaceProfileId] = useState<string>("");
   const [guestSessionId, setGuestSessionId] = useState<string>(() => localStorage.getItem(GUEST_SESSION_KEY) || "");
@@ -119,7 +120,7 @@ function App() {
   const currentStyle = styleById.get(currentJob?.style_id || selectedStyleId) || null;
   const activeSheetStyle = sheetStyleId ? styleById.get(sheetStyleId) || null : null;
   const featuredResult: ResultAsset | null = currentJob?.results[featuredResultIndex] || currentJob?.results[0] || null;
-  const portraitPreview = filePreview || (currentJob?.input_preview_url ? assetUrl(currentJob.input_preview_url) : "");
+  const portraitPreview = filePreview || savedFacePreview || (currentJob?.input_preview_url ? assetUrl(currentJob.input_preview_url) : "");
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
@@ -178,6 +179,38 @@ function App() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isTelegram && !guestSessionId) {
+      return;
+    }
+
+    let active = true;
+
+    fetchFaceProfiles({
+      guestSessionId: isTelegram ? undefined : guestSessionId,
+      telegramInitData: isTelegram ? telegramInitData : undefined,
+    })
+      .then((items) => {
+        if (!active || !items.length || filePreview) {
+          return;
+        }
+
+        if (!selectedFaceProfileId) {
+          setSelectedFaceProfileId(items[0].id);
+        }
+        setSavedFacePreview(items[0].preview_url || items[0].image_url);
+      })
+      .catch(() => {
+        if (active) {
+          setSavedFacePreview("");
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [filePreview, guestSessionId, isTelegram, selectedFaceProfileId, telegramInitData]);
 
   useEffect(() => {
     if (!currentJobId) {
@@ -247,6 +280,10 @@ function App() {
     if (file || filePreview) {
       clearTemporaryUpload();
     }
+  }
+
+  function handleSelectedFacePreviewChange(previewUrl: string | null): void {
+    setSavedFacePreview(previewUrl || "");
   }
 
   function openStyleSheet(styleId: string): void {
@@ -421,12 +458,14 @@ function App() {
 
       {!isQueueView && !isResultView ? (
         <>
-          <div className="gallery-topbar">
-            <button type="button" className="face-entry-button" onClick={openFaceSheet}>
-              {filePreview ? <img src={filePreview} alt="Ваше лицо" /> : <span className="face-entry-button__dot" />}
-              <strong>Мое лицо</strong>
-            </button>
-          </div>
+            <div className="gallery-topbar">
+              <button type="button" className="face-entry-button" onClick={openFaceSheet}>
+                {filePreview ? <img src={filePreview} alt="Ваше лицо" /> : null}
+                {!filePreview && savedFacePreview ? <img src={assetUrl(savedFacePreview)} alt="Ваше лицо" /> : null}
+                {!filePreview && !savedFacePreview ? <span className="face-entry-button__dot" /> : null}
+                <strong>Мое лицо</strong>
+              </button>
+            </div>
 
           {error ? <div className="error-banner gallery-error">{error}</div> : null}
 
@@ -434,27 +473,47 @@ function App() {
             {styles.map((style) => {
               const isSelected = selectedStyleId === style.id;
               return (
-                <button
-                  type="button"
-                  key={style.id}
-                  className={`feed-card feed-card--gallery ${isSelected ? "is-selected" : ""}`}
-                  onClick={() => openStyleSheet(style.id)}
-                >
-                  <div className="feed-card__media">
-                    <img
-                      src={assetUrl(style.preview_image)}
-                      alt={style.name}
-                      loading="lazy"
-                      decoding="async"
-                      sizes="(max-width: 760px) 100vw, (max-width: 1180px) 50vw, 33vw"
-                    />
-                  </div>
-                  <div className="feed-card__overlay">
-                    <div className="feed-card__copy">
-                      <h3>{style.name}</h3>
+                <article key={style.id} className={`feed-card feed-card--gallery ${isSelected ? "is-selected" : ""}`}>
+                  <button
+                    type="button"
+                    className="feed-card__tap"
+                    onClick={() => setSelectedStyleId(style.id)}
+                  >
+                    <div className="feed-card__media">
+                      <img
+                        src={assetUrl(style.preview_image)}
+                        alt={style.name}
+                        loading="lazy"
+                        decoding="async"
+                        sizes="(max-width: 760px) 100vw, (max-width: 1180px) 50vw, 33vw"
+                      />
                     </div>
-                  </div>
-                </button>
+                    <div className="feed-card__overlay">
+                      <div className="feed-card__copy">
+                        <h3>{style.name}</h3>
+                      </div>
+                    </div>
+                  </button>
+
+                  {isSelected ? (
+                    <div className="feed-card__actionbar">
+                      <button
+                        type="button"
+                        className="card-action-button"
+                        disabled={Boolean(submittingStyleId)}
+                        onClick={() => {
+                          if (hasFaceSource) {
+                            void submitStyle(style.id);
+                            return;
+                          }
+                          openStyleSheet(style.id);
+                        }}
+                      >
+                        {submittingStyleId === style.id ? "Ставим..." : "Вставить себя"}
+                      </button>
+                    </div>
+                  ) : null}
+                </article>
               );
             })}
           </section>
@@ -493,6 +552,7 @@ function App() {
                     telegramInitData={isTelegram ? telegramInitData : undefined}
                     selectedFaceProfileId={selectedFaceProfileId}
                     onSelectFaceProfileId={handleSelectFaceProfile}
+                    onSelectedFacePreviewChange={handleSelectedFacePreviewChange}
                   />
 
                   <section className="mini-override-panel">

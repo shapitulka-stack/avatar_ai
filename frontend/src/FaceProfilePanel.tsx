@@ -8,10 +8,11 @@ type FaceProfilePanelProps = {
   telegramInitData?: string;
   selectedFaceProfileId: string;
   onSelectFaceProfileId: (profileId: string) => void;
+  onSelectedFacePreviewChange?: (previewUrl: string | null) => void;
 };
 
 function FaceProfilePanel(props: FaceProfilePanelProps) {
-  const { guestSessionId, telegramInitData, selectedFaceProfileId, onSelectFaceProfileId } = props;
+  const { guestSessionId, telegramInitData, selectedFaceProfileId, onSelectFaceProfileId, onSelectedFacePreviewChange } = props;
   const [profiles, setProfiles] = useState<FaceProfile[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
@@ -35,6 +36,15 @@ function FaceProfilePanel(props: FaceProfilePanelProps) {
         setProfiles(items);
         if (!selectedFaceProfileId && items[0]) {
           onSelectFaceProfileId(items[0].id);
+          onSelectedFacePreviewChange?.(items[0].preview_url || items[0].image_url);
+          return;
+        }
+
+        const selectedProfile = items.find((item) => item.id === selectedFaceProfileId);
+        if (selectedProfile) {
+          onSelectedFacePreviewChange?.(selectedProfile.preview_url || selectedProfile.image_url);
+        } else if (!items.length) {
+          onSelectedFacePreviewChange?.(null);
         }
       })
       .catch((reason: unknown) => {
@@ -51,7 +61,7 @@ function FaceProfilePanel(props: FaceProfilePanelProps) {
     return () => {
       active = false;
     };
-  }, [guestSessionId, onSelectFaceProfileId, selectedFaceProfileId, telegramInitData]);
+  }, [guestSessionId, onSelectFaceProfileId, onSelectedFacePreviewChange, selectedFaceProfileId, telegramInitData]);
 
   async function handleProfileUpload(event: ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = event.target.files?.[0];
@@ -72,6 +82,7 @@ function FaceProfilePanel(props: FaceProfilePanelProps) {
       });
       setProfiles((current) => [profile, ...current]);
       onSelectFaceProfileId(profile.id);
+      onSelectedFacePreviewChange?.(profile.preview_url || profile.image_url);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не удалось сохранить лицо.");
     } finally {
@@ -102,7 +113,10 @@ function FaceProfilePanel(props: FaceProfilePanelProps) {
                 type="button"
                 key={profile.id}
                 className={`face-profile-pill ${selectedFaceProfileId === profile.id ? "is-selected" : ""}`}
-                onClick={() => onSelectFaceProfileId(profile.id)}
+                onClick={() => {
+                  onSelectFaceProfileId(profile.id);
+                  onSelectedFacePreviewChange?.(preview);
+                }}
               >
                 <img src={assetUrl(preview)} alt={profile.label} loading="lazy" decoding="async" sizes="56px" />
                 <span>{profile.label}</span>

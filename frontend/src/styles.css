@@ -1364,8 +1364,8 @@ strong {
 }
 
 .card-action-button {
-  flex: 0 0 auto;
-  padding: 12px 16px;
+  width: 100%;
+  padding: 14px 16px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.96);
   color: #101520;
@@ -2033,7 +2033,7 @@ strong {
   position: relative;
   z-index: 2;
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   margin-bottom: 12px;
 }
 
@@ -2073,6 +2073,14 @@ strong {
   padding: 0;
   min-height: 360px;
   text-align: left;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.feed-card__tap {
+  display: block;
+  width: 100%;
+  height: 100%;
+  text-align: left;
 }
 
 .feed-card--gallery .feed-card__media,
@@ -2082,6 +2090,26 @@ strong {
 
 .feed-card--gallery .feed-card__media img {
   object-fit: cover;
+  transform: scale(1);
+  transition: transform 220ms ease;
+}
+
+.feed-card--gallery.is-selected {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 26px 90px rgba(0, 0, 0, 0.42);
+}
+
+.feed-card--gallery.is-selected .feed-card__media img {
+  transform: scale(1.06);
+}
+
+.feed-card__actionbar {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 3;
 }
 
 .sheet-backdrop {
@@ -2166,11 +2194,10 @@ strong {
 
 @media (max-width: 720px) {
   .gallery-topbar {
-    justify-content: stretch;
+    justify-content: flex-start;
   }
 
   .face-entry-button {
-    width: 100%;
     justify-content: center;
   }
 
