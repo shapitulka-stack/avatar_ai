@@ -39,5 +39,6 @@ databases:
     databaseName: avatar_ai
     user: avatar_ai
     plan: free
+    region: frankfurt
     postgresMajorVersion: "16"
     ipAllowList: []
