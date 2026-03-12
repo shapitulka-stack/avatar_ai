@@ -14,7 +14,8 @@ Already configured on the live bot:
 Still required in BotFather:
 
 - rotate the current bot token
-- set mini app short name
+- set up the bot's Main Mini App
+- optionally set a direct-link mini app short name later, if you want the `/appname` style links
 
 ## Sync Script
 
@@ -35,7 +36,14 @@ backend\.venv\Scripts\python.exe backend\scripts\sync_telegram_bot.py --dry-run 
 
 ## Direct Link Format
 
-Once `TELEGRAM_MINI_APP_SHORT_NAME` is configured in BotFather, use these links:
+Simplest launch path: use the bot's Main Mini App direct links:
+
+- template link:
+  `https://t.me/ai_ava_666_bot?startapp=style-<style_id>`
+- result link:
+  `https://t.me/ai_ava_666_bot?startapp=job-<job_id>`
+
+If `TELEGRAM_MINI_APP_SHORT_NAME` is configured later in BotFather, you can also use these links:
 
 - template link:
   `https://t.me/ai_ava_666_bot/<mini_app_short_name>?startapp=style-<style_id>`
@@ -70,7 +78,7 @@ Pin these two posts:
 
 ## Ready Posts
 
-Replace `<mini_app_short_name>` only after BotFather setup is complete.
+For the first test, you can publish the simpler `https://t.me/ai_ava_666_bot?startapp=...` links and skip `<mini_app_short_name>` entirely.
 
 ### 1. Welcome / What This Is
 
@@ -84,7 +92,7 @@ Text:
 
 CTA:
 
-`https://t.me/ai_ava_666_bot/<mini_app_short_name>`
+`https://t.me/ai_ava_666_bot?startapp`
 
 ### 2. Top Anime Template
 
@@ -98,7 +106,7 @@ Text:
 
 CTA:
 
-`https://t.me/ai_ava_666_bot/<mini_app_short_name>?startapp=style-anime-neon`
+`https://t.me/ai_ava_666_bot?startapp=style-anime-neon`
 
 ### 3. Top Cinematic / Business Template
 
@@ -112,7 +120,7 @@ Text:
 
 CTA:
 
-`https://t.me/ai_ava_666_bot/<mini_app_short_name>?startapp=style-cinematic-pro`
+`https://t.me/ai_ava_666_bot?startapp=style-cinematic-pro`
 
 ### 4. Top Premium / Luxury Template
 
@@ -126,7 +134,7 @@ Text:
 
 CTA:
 
-`https://t.me/ai_ava_666_bot/<mini_app_short_name>?startapp=style-velvet-royal`
+`https://t.me/ai_ava_666_bot?startapp=style-velvet-royal`
 
 ### 5. How It Works in 3 Taps
 
@@ -142,7 +150,7 @@ Text:
 
 CTA:
 
-`https://t.me/ai_ava_666_bot/<mini_app_short_name>`
+`https://t.me/ai_ava_666_bot?startapp`
 
 ## First Test Flow
 

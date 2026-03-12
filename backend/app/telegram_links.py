@@ -37,15 +37,20 @@ def build_direct_mini_app_link(
     job_id: str | None = None,
 ) -> str | None:
     username = _clean_username(settings.telegram_bot_username)
-    short_name = _clean_username(settings.telegram_mini_app_short_name)
-    if not username or not short_name:
+    if not username:
         return None
 
     start_param = encode_start_param(style_id=style_id, job_id=job_id)
-    base_url = f"https://t.me/{username}/{short_name}"
+    short_name = _clean_username(settings.telegram_mini_app_short_name)
+    if short_name:
+        base_url = f"https://t.me/{username}/{short_name}"
+        if not start_param:
+            return base_url
+        return f"{base_url}?startapp={quote(start_param, safe='')}"
+
     if not start_param:
-        return base_url
-    return f"{base_url}?startapp={quote(start_param, safe='')}"
+        return None
+    return f"https://t.me/{username}?startapp={quote(start_param, safe='')}"
 
 
 def encode_start_param(*, style_id: str | None = None, job_id: str | None = None) -> str | None:
