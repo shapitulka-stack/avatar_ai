@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 
 import { assetUrl, createJob, fetchJob, fetchStyles } from "./api";
 import FaceProfilePanel from "./FaceProfilePanel";
@@ -94,7 +94,6 @@ function formatWait(seconds?: number | null): string {
 }
 
 function App() {
-  const setupRef = useRef<HTMLElement | null>(null);
   const telegramInitData = useMemo(() => window.Telegram?.WebApp?.initData || "", []);
   const isTelegram = telegramInitData.length > 0;
 
@@ -107,6 +106,8 @@ function App() {
   const [currentJobId, setCurrentJobId] = useState<string>(currentJobIdFromUrl());
   const [currentJob, setCurrentJob] = useState<JobDetail | null>(null);
   const [featuredResultIndex, setFeaturedResultIndex] = useState<number>(0);
+  const [pendingStyleId, setPendingStyleId] = useState<string>("");
+  const [setupOpen, setSetupOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [submittingStyleId, setSubmittingStyleId] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -220,13 +221,6 @@ function App() {
     setFeaturedResultIndex(0);
   }, [currentJob?.job_id, currentJob?.results?.length]);
 
-  function focusSetup(): void {
-    setupRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }
-
   function clearTemporaryUpload(): void {
     if (filePreview) {
       URL.revokeObjectURL(filePreview);
@@ -237,6 +231,7 @@ function App() {
 
   function onFileChange(event: ChangeEvent<HTMLInputElement>): void {
     const nextFile = event.target.files?.[0] || null;
+    event.target.value = "";
     setError("");
     clearTemporaryUpload();
 
@@ -253,16 +248,9 @@ function App() {
     }
   }
 
-  async function runStyle(styleId: string): Promise<void> {
+  async function submitStyle(styleId: string): Promise<void> {
     setSelectedStyleId(styleId);
     setError("");
-
-    if (!hasFaceSource) {
-      setError("Сначала выбери лицо.");
-      focusSetup();
-      return;
-    }
-
     setSubmittingStyleId(styleId);
 
     try {
@@ -280,6 +268,8 @@ function App() {
         setGuestSessionId(response.guest_session_id);
       }
 
+      setPendingStyleId("");
+      setSetupOpen(false);
       setCurrentJobId(response.job_id);
       updateJobInUrl(response.job_id);
     } catch (reason) {
@@ -287,6 +277,18 @@ function App() {
     } finally {
       setSubmittingStyleId("");
     }
+  }
+
+  async function handleStyleClick(styleId: string): Promise<void> {
+    setSelectedStyleId(styleId);
+
+    if (!hasFaceSource) {
+      setPendingStyleId(styleId);
+      setSetupOpen(true);
+      return;
+    }
+
+    await submitStyle(styleId);
   }
 
   function dismissCurrentJob(): void {
@@ -418,7 +420,7 @@ function App() {
                     type="button"
                     className="primary-button"
                     disabled={!hasFaceSource || Boolean(submittingStyleId)}
-                    onClick={() => void runStyle(currentStyle.id)}
+                    onClick={() => void submitStyle(currentStyle.id)}
                   >
                     {submittingStyleId === currentStyle.id ? "Ставим..." : "Сделать еще"}
                   </button>
@@ -431,104 +433,105 @@ function App() {
 
       {!isQueueView && !isResultView ? (
         <>
-          <section ref={setupRef} className="feed-toolbar">
-            <div className="feed-toolbar__top">
-              <span className="micro-pill">Лента</span>
-              <span className={`feed-toolbar__state ${hasFaceSource ? "is-ready" : ""}`}>
-                {hasFaceSource ? "Лицо выбрано" : "Сначала выбери лицо"}
-              </span>
-            </div>
+          {error ? <div className="error-banner gallery-error">{error}</div> : null}
 
-            <div className="feed-toolbar__grid">
-              <FaceProfilePanel
-                guestSessionId={isTelegram ? undefined : guestSessionId}
-                telegramInitData={isTelegram ? telegramInitData : undefined}
-                selectedFaceProfileId={selectedFaceProfileId}
-                onSelectFaceProfileId={handleSelectFaceProfile}
-              />
+          <section className="feed-gallery">
+            {styles.map((style) => {
+              const isSelected = selectedStyleId === style.id;
+              return (
+                <article key={style.id} className={`feed-card feed-card--gallery ${isSelected ? "is-selected" : ""}`}>
+                  <div className="feed-card__media">
+                    <img
+                      src={assetUrl(style.preview_image)}
+                      alt={style.name}
+                      loading="lazy"
+                      decoding="async"
+                      sizes="(max-width: 760px) 100vw, (max-width: 1180px) 50vw, 33vw"
+                    />
+                  </div>
+                  <div className="feed-card__overlay">
+                    <div className="feed-card__copy">
+                      <h3>{style.name}</h3>
+                    </div>
+                    <button
+                      type="button"
+                      className="card-action-button"
+                      disabled={Boolean(submittingStyleId)}
+                      onClick={() => void handleStyleClick(style.id)}
+                    >
+                      {submittingStyleId === style.id ? "Ставим..." : "Вставить себя"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
 
-              <section className="mini-override-panel">
-                <div className="mini-override-panel__head">
-                  <span className="eyebrow">Другое лицо</span>
-                  <p>На один раз</p>
+          {setupOpen ? (
+            <div className="setup-modal-backdrop" onClick={() => setSetupOpen(false)}>
+              <section className="setup-modal" onClick={(event) => event.stopPropagation()}>
+                <div className="setup-modal__head">
+                  <div>
+                    <span className="eyebrow">Добавь лицо</span>
+                    <h2>Чтобы вставить себя</h2>
+                  </div>
+                  <button type="button" className="ghost-button" onClick={() => setSetupOpen(false)}>
+                    Закрыть
+                  </button>
                 </div>
 
-                {portraitPreview ? (
-                  <div className="mini-override-panel__preview">
-                    <img src={portraitPreview} alt="Другое лицо" decoding="async" />
-                    <div className="mini-override-panel__actions">
-                      <label className="ghost-button">
-                        Заменить
-                        <input type="file" accept="image/*" onChange={onFileChange} />
-                      </label>
-                      <button type="button" className="ghost-button" onClick={clearTemporaryUpload}>
-                        Убрать
-                      </button>
+                <div className="setup-modal__body">
+                  <FaceProfilePanel
+                    guestSessionId={isTelegram ? undefined : guestSessionId}
+                    telegramInitData={isTelegram ? telegramInitData : undefined}
+                    selectedFaceProfileId={selectedFaceProfileId}
+                    onSelectFaceProfileId={handleSelectFaceProfile}
+                  />
+
+                  <section className="mini-override-panel">
+                    <div className="mini-override-panel__head">
+                      <span className="eyebrow">Другое лицо</span>
+                      <p>На один раз</p>
                     </div>
-                  </div>
-                ) : (
-                  <label className="mini-upload-button">
-                    <input type="file" accept="image/*" onChange={onFileChange} />
-                    <span>Загрузить фото</span>
-                  </label>
-                )}
+
+                    {filePreview ? (
+                      <div className="mini-override-panel__preview">
+                        <img src={filePreview} alt="Другое лицо" decoding="async" />
+                        <div className="mini-override-panel__actions">
+                          <label className="ghost-button">
+                            Заменить
+                            <input type="file" accept="image/*" onChange={onFileChange} />
+                          </label>
+                          <button type="button" className="ghost-button" onClick={clearTemporaryUpload}>
+                            Убрать
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="mini-upload-button">
+                        <input type="file" accept="image/*" onChange={onFileChange} />
+                        <span>Загрузить фото</span>
+                      </label>
+                    )}
+                  </section>
+                </div>
+
+                <div className="setup-modal__footer">
+                  <button type="button" className="secondary-button" onClick={() => setSetupOpen(false)}>
+                    Пока нет
+                  </button>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    disabled={!hasFaceSource || !pendingStyleId || Boolean(submittingStyleId)}
+                    onClick={() => void submitStyle(pendingStyleId)}
+                  >
+                    {submittingStyleId === pendingStyleId ? "Ставим..." : "Продолжить"}
+                  </button>
+                </div>
               </section>
             </div>
-          </section>
-
-          {error ? <div className="error-banner simple-error">{error}</div> : null}
-
-          <section className="feed-block feed-block--primary">
-            <div className="feed-block__head feed-block__head--compact">
-              <h2>{loading ? "Загружаем..." : "Примеры"}</h2>
-              <p>Нажми «Вставить себя» на нужной карточке.</p>
-            </div>
-
-            <div className="feed-grid">
-              {styles.map((style) => {
-                const isSelected = selectedStyleId === style.id;
-
-                return (
-                  <article key={style.id} className={`feed-card ${isSelected ? "is-selected" : ""}`}>
-                    <div className="feed-card__media">
-                      <img
-                        src={assetUrl(style.preview_image)}
-                        alt={style.name}
-                        loading="lazy"
-                        decoding="async"
-                        sizes="(max-width: 760px) 100vw, (max-width: 1180px) 50vw, 33vw"
-                      />
-                    </div>
-
-                    <div className="feed-card__body">
-                      <div className="feed-card__top">
-                        <div>
-                          <h3>{style.name}</h3>
-                          <p>{style.description}</p>
-                        </div>
-                        {isSelected ? <span className="micro-pill">Выбран</span> : null}
-                      </div>
-
-                      <div className="tag-row">
-                        {style.tags.map((tag) => (
-                          <span key={tag}>{tag}</span>
-                        ))}
-                      </div>
-
-                      <button
-                        type="button"
-                        className="primary-button"
-                        disabled={Boolean(submittingStyleId)}
-                        onClick={() => void runStyle(style.id)}
-                      >
-                        {submittingStyleId === style.id ? "Ставим..." : "Вставить себя"}
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
+          ) : null}
         </>
       ) : null}
     </div>

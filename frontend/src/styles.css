@@ -1317,6 +1317,106 @@ strong {
   margin: 0 auto;
 }
 
+.feed-gallery {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.gallery-error {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 12px;
+}
+
+.feed-card--gallery {
+  position: relative;
+  overflow: hidden;
+  min-height: 320px;
+}
+
+.feed-card--gallery .feed-card__media,
+.feed-card--gallery .feed-card__media img {
+  height: 100%;
+}
+
+.feed-card--gallery .feed-card__media img {
+  object-fit: cover;
+}
+
+.feed-card__overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(5, 8, 18, 0) 0%, rgba(5, 8, 18, 0.86) 100%);
+}
+
+.feed-card__copy h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.card-action-button {
+  flex: 0 0 auto;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #101520;
+  font-weight: 700;
+}
+
+.card-action-button:disabled {
+  opacity: 0.58;
+}
+
+.setup-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: end center;
+  padding: 16px;
+  background: rgba(5, 8, 18, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.setup-modal {
+  width: min(720px, 100%);
+  max-height: min(86vh, 880px);
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(12, 17, 31, 0.98), rgba(9, 13, 24, 0.98));
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.setup-modal__head,
+.setup-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.setup-modal__head h2 {
+  margin: 8px 0 0;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+}
+
+.setup-modal__body {
+  display: grid;
+  gap: 14px;
+  margin: 16px 0;
+}
+
 .simple-shell__glow {
   position: absolute;
   border-radius: 999px;
@@ -1871,6 +1971,18 @@ strong {
 @media (max-width: 720px) {
   .simple-shell {
     padding: 14px 12px 24px;
+  }
+
+  .feed-gallery,
+  .setup-modal__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .feed-card__overlay,
+  .setup-modal__head,
+  .setup-modal__footer {
+    flex-direction: column;
+    align-items: start;
   }
 
   .feed-toolbar__top,
