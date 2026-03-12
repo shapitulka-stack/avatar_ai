@@ -1,0 +1,11 @@
+﻿id: cinematic
+name: Cinematic Hero
+summary: High-contrast studio portrait with dramatic light and premium polish.
+base_prompt: cinematic portrait, premium avatar photo, dramatic rim light, confident expression, detailed face, editorial photography, shallow depth of field, sharp focus, square composition
+negative_prompt: blurry, distorted face, extra limbs, duplicate face, text, watermark, low detail, washed out skin
+accent_color: "#F97316"
+tags:
+  - dramatic
+  - premium
+  - portrait
+sample_caption: black blazer, direct eye contact, founder energy

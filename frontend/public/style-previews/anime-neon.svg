@@ -1,0 +1,14 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1F1147"/>
+      <stop offset="100%" stop-color="#FF4FD8"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="400" rx="36" fill="url(#bg)"/>
+  <circle cx="502" cy="85" r="58" fill="#00F5D4" fill-opacity="0.45"/>
+  <circle cx="142" cy="310" r="94" fill="#FFEA00" fill-opacity="0.15"/>
+  <text x="44" y="188" fill="#FFFFFF" font-size="54" font-weight="700" font-family="Trebuchet MS, Segoe UI, sans-serif">Anime</text>
+  <text x="44" y="242" fill="#E7DFFF" font-size="34" font-family="Trebuchet MS, Segoe UI, sans-serif">Neon</text>
+  <text x="44" y="320" fill="#DCE8FF" font-size="22" font-family="Trebuchet MS, Segoe UI, sans-serif">Sharp cel shading + vibrant glow</text>
+</svg>

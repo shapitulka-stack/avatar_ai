@@ -1,0 +1,11 @@
+﻿id: linkedin
+name: LinkedIn Ready
+summary: Professional avatar optimized for trust, clarity, and profile photos.
+base_prompt: professional headshot, polished linkedin portrait, clean background, flattering daylight, trustworthy expression, realistic skin, crisp focus, square composition
+negative_prompt: messy hair, blurry, distorted smile, extra limbs, text, watermark, low resolution
+accent_color: "#0F766E"
+tags:
+  - professional
+  - clean
+  - realistic
+sample_caption: light shirt, confident smile, minimal background

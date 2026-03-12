@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: avatar-ai
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: avatar-ai-db
+          property: connectionString
+      - key: GENERATION_BACKEND
+        value: mock
+      - key: STORAGE_BACKEND
+        value: local
+      - key: TELEGRAM_BOT_POLLING_ENABLED
+        value: "true"
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: LOG_LEVEL
+        value: INFO
+      - key: QUEUE_MAX_CONCURRENT_JOBS
+        value: "1"
+      - key: QUEUE_MAX_PENDING_TOTAL
+        value: "20"
+      - key: QUEUE_MAX_PENDING_PER_USER
+        value: "2"
+      - key: QUEUE_ESTIMATED_SECONDS_PER_JOB
+        value: "90"
+
+databases:
+  - name: avatar-ai-db
+    databaseName: avatar_ai
+    user: avatar_ai
+    plan: free
+    postgresMajorVersion: "16"
+    ipAllowList: []

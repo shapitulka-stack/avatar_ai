@@ -1,0 +1,11 @@
+﻿id: anime
+name: Anime Pulse
+summary: Clean cel-shaded avatar with expressive eyes and vibrant palette.
+base_prompt: anime portrait, polished character key art, expressive eyes, clean cel shading, stylish hair, crisp linework, square composition, highly detailed face
+negative_prompt: photorealistic skin, blurry eyes, bad anatomy, extra fingers, watermark, muddy colors
+accent_color: "#06B6D4"
+tags:
+  - anime
+  - bright
+  - stylized
+sample_caption: electric blue highlights, playful smile, futuristic jacket

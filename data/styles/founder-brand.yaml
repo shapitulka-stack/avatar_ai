@@ -1,0 +1,14 @@
+﻿id: founder-brand
+name: Founder Brand
+description: Clean founder portrait with premium startup photo aesthetics.
+prompt_template: founder portrait, premium startup branding photo, clean background, sharp business styling, subtle confidence, minimal luxury lighting, realistic photography
+negative_prompt: cluttered background, bad hands, low quality, distorted features, overexposed face, watermark
+preview_image: /style-previews/founder-brand.svg
+enabled: true
+width: 1024
+height: 1024
+output_count: 4
+tags:
+  - business
+  - clean
+  - realistic

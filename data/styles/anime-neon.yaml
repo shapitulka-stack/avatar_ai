@@ -1,0 +1,14 @@
+﻿id: anime-neon
+name: Anime Neon
+description: Bright anime-inspired avatar with neon accents and high-contrast edges.
+prompt_template: anime portrait, neon rim light, clean cel shading, expressive eyes, sharp silhouette, vibrant accents, futuristic nightlife mood
+negative_prompt: dull colors, extra fingers, malformed eyes, low detail, muddy shading, text watermark
+preview_image: /style-previews/anime-neon.svg
+enabled: true
+width: 1024
+height: 1024
+output_count: 4
+tags:
+  - anime
+  - vibrant
+  - stylized

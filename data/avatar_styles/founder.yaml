@@ -1,0 +1,11 @@
+﻿id: founder
+name: Founder Mode
+summary: Sharp startup portrait tuned for product pages and personal brands.
+base_prompt: startup founder portrait, refined natural light, modern office mood, premium headshot, approachable confidence, sharp face detail, neutral background, square crop
+negative_prompt: messy background, blur, low detail, exaggerated grin, watermark, extra limbs
+accent_color: "#2563EB"
+tags:
+  - founder
+  - clean
+  - business
+sample_caption: navy overshirt, calm smile, subtle studio backdrop

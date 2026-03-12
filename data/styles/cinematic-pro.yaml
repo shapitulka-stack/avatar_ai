@@ -1,0 +1,14 @@
+﻿id: cinematic-pro
+name: Cinematic Pro
+description: Moody film-grade avatar with premium lighting and polished skin detail.
+prompt_template: cinematic portrait, premium studio lighting, highly detailed face, tasteful color grading, strong eye contact, crisp jawline, modern editorial photography, realistic skin texture
+negative_prompt: blurry, deformed face, extra limbs, cropped head, duplicate features, low quality, noisy background
+preview_image: /style-previews/cinematic-pro.svg
+enabled: true
+width: 1024
+height: 1024
+output_count: 4
+tags:
+  - realistic
+  - editorial
+  - premium

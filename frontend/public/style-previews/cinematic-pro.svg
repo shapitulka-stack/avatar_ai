@@ -1,0 +1,16 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B1226"/>
+      <stop offset="100%" stop-color="#D97A4B"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="400" rx="36" fill="url(#bg)"/>
+  <circle cx="500" cy="72" r="56" fill="#FAD089" fill-opacity="0.45"/>
+  <circle cx="118" cy="320" r="88" fill="#63E6BE" fill-opacity="0.2"/>
+  <rect x="38" y="42" width="250" height="34" rx="17" fill="#15203F"/>
+  <text x="56" y="65" fill="#F2F4F8" font-size="20" font-family="Trebuchet MS, Segoe UI, sans-serif">Avatar Style</text>
+  <text x="42" y="194" fill="#FFFFFF" font-size="54" font-weight="700" font-family="Trebuchet MS, Segoe UI, sans-serif">Cinematic</text>
+  <text x="42" y="244" fill="#DDE6F6" font-size="34" font-family="Trebuchet MS, Segoe UI, sans-serif">Pro</text>
+  <text x="42" y="320" fill="#E7EDF9" font-size="22" font-family="Trebuchet MS, Segoe UI, sans-serif">Film-grade portrait lighting</text>
+</svg>

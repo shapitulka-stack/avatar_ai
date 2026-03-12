@@ -1,0 +1,11 @@
+﻿id: gaming
+name: Gaming Icon
+summary: Bold neon avatar for streams, guilds, and gaming profiles.
+base_prompt: gaming avatar portrait, neon glow, high-energy character art, bold contrast, vibrant colors, cyber lighting, confident pose, square composition
+negative_prompt: muted colors, blurry face, duplicate person, extra hands, watermark, unreadable features
+accent_color: "#A855F7"
+tags:
+  - gaming
+  - neon
+  - bold
+sample_caption: hoodie, magenta backlight, competitive stare

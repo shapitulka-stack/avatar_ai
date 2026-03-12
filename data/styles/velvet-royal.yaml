@@ -1,0 +1,14 @@
+﻿id: velvet-royal
+name: Velvet Royal
+description: Regal portrait styling with lush textures and rich color depth.
+prompt_template: regal portrait, rich velvet textures, dramatic renaissance lighting, luxurious color palette, poised expression, premium painterly finish
+negative_prompt: cheap costume, blurry face, extra fingers, muddy colors, flat lighting, watermark
+preview_image: /style-previews/velvet-royal.svg
+enabled: true
+width: 1024
+height: 1024
+output_count: 4
+tags:
+  - royal
+  - luxury
+  - painterly

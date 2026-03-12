@@ -1,0 +1,14 @@
+﻿id: cyber-commander
+name: Cyber Commander
+description: Futuristic armored identity with bold contrast and metallic atmosphere.
+prompt_template: futuristic avatar portrait, cyber armor accents, cinematic tech glow, powerful facial framing, sleek metallic textures, tactical sci-fi mood
+negative_prompt: low detail, messy composition, malformed face, dull metal, text overlay, extra limbs
+preview_image: /style-previews/cyber-commander.svg
+enabled: true
+width: 1024
+height: 1024
+output_count: 4
+tags:
+  - sci-fi
+  - dramatic
+  - tactical

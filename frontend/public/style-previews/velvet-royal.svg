@@ -1,0 +1,13 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2A0D1D"/>
+      <stop offset="100%" stop-color="#D26692"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="400" rx="36" fill="url(#bg)"/>
+  <circle cx="500" cy="80" r="60" fill="#FFD6E8" fill-opacity="0.42"/>
+  <text x="44" y="188" fill="#FFFFFF" font-size="54" font-weight="700" font-family="Trebuchet MS, Segoe UI, sans-serif">Velvet</text>
+  <text x="44" y="242" fill="#FFE6F0" font-size="34" font-family="Trebuchet MS, Segoe UI, sans-serif">Royal</text>
+  <text x="44" y="320" fill="#FFF0F6" font-size="22" font-family="Trebuchet MS, Segoe UI, sans-serif">Regal painterly luxury portrait</text>
+</svg>

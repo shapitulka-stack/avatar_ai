@@ -1,0 +1,11 @@
+﻿id: luxury
+name: Luxury Editorial
+summary: Glossy fashion-forward portrait with polished styling and rich tones.
+base_prompt: luxury editorial portrait, rich color grading, soft luxury lighting, premium fashion campaign, elegant expression, glossy finish, detailed face, square composition
+negative_prompt: cheap lighting, blur, harsh artifacts, extra limbs, watermark, low resolution
+accent_color: "#D4A017"
+tags:
+  - luxury
+  - fashion
+  - glossy
+sample_caption: black turtleneck, gold accents, poised expression

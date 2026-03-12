@@ -1,0 +1,14 @@
+﻿id: fantasy-warden
+name: Fantasy Warden
+description: Heroic fantasy treatment with armor textures and mythic atmosphere.
+prompt_template: fantasy character portrait, heroic posture, intricate costume detail, atmospheric light beams, noble expression, painterly realism, epic backdrop
+negative_prompt: low quality, flat face, messy armor, extra limbs, poor anatomy, washed colors
+preview_image: /style-previews/fantasy-warden.svg
+enabled: true
+width: 1024
+height: 1024
+output_count: 4
+tags:
+  - fantasy
+  - heroic
+  - painterly
