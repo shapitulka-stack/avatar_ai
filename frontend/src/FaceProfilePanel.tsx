@@ -1,4 +1,4 @@
-﻿import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 
 import { assetUrl, createFaceProfile, fetchFaceProfiles } from "./api";
 import type { FaceProfile } from "./types";
@@ -39,7 +39,7 @@ function FaceProfilePanel(props: FaceProfilePanelProps) {
       })
       .catch((reason: unknown) => {
         if (active) {
-          setError(reason instanceof Error ? reason.message : "Не удалось загрузить профили лица.");
+          setError(reason instanceof Error ? reason.message : "Не удалось загрузить лица.");
         }
       })
       .finally(() => {
@@ -73,54 +73,46 @@ function FaceProfilePanel(props: FaceProfilePanelProps) {
       setProfiles((current) => [profile, ...current]);
       onSelectFaceProfileId(profile.id);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Не удалось сохранить лицо в профиль.");
+      setError(reason instanceof Error ? reason.message : "Не удалось сохранить лицо.");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <section className="face-panel">
-      <div className="face-panel__header">
-        <div>
-          <span className="eyebrow">Мои лица</span>
-          <h3>{profiles.length > 0 ? "Выбери лицо для подстановки" : "Сначала добавь одно лицо"}</h3>
-        </div>
-
+    <section className="face-panel compact-face-panel">
+      <div className="compact-face-panel__head">
+        <span className="eyebrow">Мое лицо</span>
         <label className="ghost-button face-upload-button">
-          {saving ? "Сохраняем..." : profiles.length > 0 ? "Добавить лицо" : "Загрузить лицо"}
+          {saving ? "Сохраняем..." : profiles.length > 0 ? "Добавить" : "Загрузить"}
           <input type="file" accept="image/*" onChange={(event) => void handleProfileUpload(event)} disabled={saving} />
         </label>
       </div>
 
-      {loading ? <div className="history-empty">Загружаем сохраненные лица...</div> : null}
-      {!loading && profiles.length === 0 ? <div className="history-empty">Пока нет сохраненных лиц.</div> : null}
+      {loading ? <div className="history-empty">Загружаем...</div> : null}
+      {!loading && profiles.length === 0 ? <div className="history-empty">Пока нет лиц.</div> : null}
       {error ? <div className="error-banner">{error}</div> : null}
 
-      <div className="face-profile-grid">
-        {profiles.map((profile) => {
-          const preview = profile.preview_url || profile.image_url;
-          return (
-            <button
-              type="button"
-              key={profile.id}
-              className={`face-profile-card ${selectedFaceProfileId === profile.id ? "is-selected" : ""}`}
-              onClick={() => onSelectFaceProfileId(profile.id)}
-            >
-              <div className="face-profile-card__media">
-                <img src={assetUrl(preview)} alt={profile.label} loading="lazy" decoding="async" sizes="96px" />
-              </div>
-              <div className="face-profile-card__body">
-                <strong>{profile.label}</strong>
-                <span>{selectedFaceProfileId === profile.id ? "Будет использовано по умолчанию" : "Можно переключить на этот профиль"}</span>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+      {profiles.length > 0 ? (
+        <div className="face-profile-strip">
+          {profiles.map((profile) => {
+            const preview = profile.preview_url || profile.image_url;
+            return (
+              <button
+                type="button"
+                key={profile.id}
+                className={`face-profile-pill ${selectedFaceProfileId === profile.id ? "is-selected" : ""}`}
+                onClick={() => onSelectFaceProfileId(profile.id)}
+              >
+                <img src={assetUrl(preview)} alt={profile.label} loading="lazy" decoding="async" sizes="56px" />
+                <span>{profile.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
     </section>
   );
 }
 
 export default FaceProfilePanel;
-

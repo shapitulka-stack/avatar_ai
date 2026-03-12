@@ -1,45 +1,41 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
-import { assetUrl, createJob, fetchJob, fetchMyJobs, fetchStyles } from "./api";
+import { assetUrl, createJob, fetchJob, fetchStyles } from "./api";
 import FaceProfilePanel from "./FaceProfilePanel";
 import type { JobDetail, ResultAsset, StyleCard } from "./types";
 
 const GUEST_SESSION_KEY = "avatar_ai_guest_session";
 const PENDING_STATUSES = new Set<JobDetail["status"]>(["queued", "running"]);
-const RU_DATE_FORMAT = new Intl.DateTimeFormat("ru-RU", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
 
 const STYLE_COPY: Record<string, Pick<StyleCard, "name" | "description" | "tags">> = {
   "anime-neon": {
     name: "Anime Neon",
-    description: "Яркий аниме-образ с неоном и эффектной подачей.",
+    description: "Яркий аниме-образ с неоном.",
     tags: ["anime", "neon", "pop"],
   },
   "cinematic-pro": {
     name: "Cinematic Pro",
-    description: "Киношный портрет с дорогим светом и спокойным вайбом.",
+    description: "Киношный портрет с дорогим светом.",
     tags: ["cinema", "portrait", "clean"],
   },
   "cyber-commander": {
     name: "Cyber Commander",
-    description: "Футуристичный sci-fi образ с мощной digital-энергией.",
+    description: "Футуристичный sci-fi образ.",
     tags: ["cyber", "future", "bold"],
   },
   "fantasy-warden": {
     name: "Fantasy Warden",
-    description: "Эпический fantasy-кадр с атмосферой героя.",
+    description: "Эпический fantasy-кадр.",
     tags: ["fantasy", "hero", "epic"],
   },
   "founder-brand": {
     name: "Founder Brand",
-    description: "Чистый брендовый портрет для профиля и личного бренда.",
+    description: "Чистый брендовый портрет.",
     tags: ["brand", "editorial", "clean"],
   },
   "velvet-royal": {
     name: "Velvet Royal",
-    description: "Эффектный luxury-образ с глубоким светом и wow-подачей.",
+    description: "Эффектный luxury-образ.",
     tags: ["royal", "luxury", "art"],
   },
 };
@@ -78,7 +74,7 @@ function humanStatus(status?: JobDetail["status"]): string {
     case "queued":
       return "В очереди";
     case "running":
-      return "Генерируется";
+      return "Генерируем";
     case "succeeded":
       return "Готово";
     case "failed":
@@ -86,10 +82,6 @@ function humanStatus(status?: JobDetail["status"]): string {
     default:
       return "Подготовка";
   }
-}
-
-function formatMoment(value?: string | null): string {
-  return value ? RU_DATE_FORMAT.format(new Date(value)) : "Пока нет";
 }
 
 function formatWait(seconds?: number | null): string {
@@ -101,22 +93,12 @@ function formatWait(seconds?: number | null): string {
   return minutes === 1 ? "Около 1 мин" : `Около ${minutes} мин`;
 }
 
-function pickHistoryImage(job: JobDetail): string | null {
-  if (job.results[0]) {
-    return assetUrl(job.results[0].thumb_url);
-  }
-  if (job.input_preview_url) {
-    return assetUrl(job.input_preview_url);
-  }
-  return null;
-}
-
 function App() {
-  const composerRef = useRef<HTMLElement | null>(null);
+  const setupRef = useRef<HTMLElement | null>(null);
   const telegramInitData = useMemo(() => window.Telegram?.WebApp?.initData || "", []);
   const isTelegram = telegramInitData.length > 0;
+
   const [styles, setStyles] = useState<StyleCard[]>([]);
-  const [history, setHistory] = useState<JobDetail[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string>("");
   const [selectedStyleId, setSelectedStyleId] = useState<string>("");
@@ -126,19 +108,16 @@ function App() {
   const [currentJob, setCurrentJob] = useState<JobDetail | null>(null);
   const [featuredResultIndex, setFeaturedResultIndex] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
-  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [submittingStyleId, setSubmittingStyleId] = useState<string>("");
   const [error, setError] = useState<string>("");
 
   const styleById = useMemo(() => new Map(styles.map((style): [string, StyleCard] => [style.id, style])), [styles]);
   const hasFaceSource = Boolean(file || selectedFaceProfileId);
+  const isQueueView = Boolean(currentJob && PENDING_STATUSES.has(currentJob.status));
+  const isResultView = Boolean(currentJob && !PENDING_STATUSES.has(currentJob.status));
   const currentStyle = styleById.get(currentJob?.style_id || selectedStyleId) || null;
   const featuredResult: ResultAsset | null = currentJob?.results[featuredResultIndex] || currentJob?.results[0] || null;
   const portraitPreview = filePreview || (currentJob?.input_preview_url ? assetUrl(currentJob.input_preview_url) : "");
-  const isQueueView = Boolean(currentJob && PENDING_STATUSES.has(currentJob.status));
-  const isResultView = Boolean(currentJob && !PENDING_STATUSES.has(currentJob.status));
-  const actionHint = hasFaceSource
-    ? "Лицо выбрано. Теперь можно просто нажимать на понравившийся шаблон."
-    : "Сначала выбери лицо или загрузи фото, потом нажми «Вставить себя» на карточке.";
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
@@ -179,12 +158,12 @@ function App() {
           setSelectedStyleId(enabledStyles[0].id);
         }
         if (!enabledStyles.length) {
-          setError("Не найдено ни одного доступного шаблона.");
+          setError("Не нашли шаблоны.");
         }
       })
       .catch((reason: unknown) => {
         if (active) {
-          setError(reason instanceof Error ? reason.message : "Не удалось загрузить шаблоны.");
+          setError(reason instanceof Error ? reason.message : "Не удалось загрузить ленту.");
         }
       })
       .finally(() => {
@@ -197,33 +176,6 @@ function App() {
       active = false;
     };
   }, []);
-
-  useEffect(() => {
-    if (!isTelegram && !guestSessionId) {
-      return;
-    }
-
-    let active = true;
-
-    fetchMyJobs({
-      guestSessionId: isTelegram ? undefined : guestSessionId,
-      telegramInitData: isTelegram ? telegramInitData : undefined,
-    })
-      .then((response) => {
-        if (active) {
-          setHistory(response.items);
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setHistory([]);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [currentJobId, currentJob?.status, guestSessionId, isTelegram, telegramInitData]);
 
   useEffect(() => {
     if (!currentJobId) {
@@ -249,7 +201,7 @@ function App() {
         }
       } catch (reason) {
         if (active) {
-          setError(reason instanceof Error ? reason.message : "Не удалось загрузить текущую задачу.");
+          setError(reason instanceof Error ? reason.message : "Не удалось загрузить задачу.");
         }
       }
     };
@@ -269,7 +221,7 @@ function App() {
   }, [currentJob?.job_id, currentJob?.results?.length]);
 
   function focusSetup(): void {
-    composerRef.current?.scrollIntoView({
+    setupRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
@@ -305,13 +257,13 @@ function App() {
     setSelectedStyleId(styleId);
     setError("");
 
-    if (!file && !selectedFaceProfileId) {
-      setError("Сначала добавь лицо, потом нажми «Вставить себя» еще раз.");
+    if (!hasFaceSource) {
+      setError("Сначала выбери лицо.");
       focusSetup();
       return;
     }
 
-    setSubmitting(true);
+    setSubmittingStyleId(styleId);
 
     try {
       const response = await createJob({
@@ -333,7 +285,7 @@ function App() {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не удалось поставить задачу в очередь.");
     } finally {
-      setSubmitting(false);
+      setSubmittingStyleId("");
     }
   }
 
@@ -346,18 +298,18 @@ function App() {
   }
 
   return (
-    <div className="simple-shell">
+    <div className="simple-shell feed-only-shell">
       <div className="simple-shell__glow simple-shell__glow--warm" />
       <div className="simple-shell__glow simple-shell__glow--cool" />
 
       {isQueueView && currentJob ? (
         <section className="focus-screen">
           <span className="eyebrow">Очередь</span>
-          <h1>{currentJob.status === "running" ? "Делаем ваш кадр" : "Поставили в очередь"}</h1>
+          <h1>{currentJob.status === "running" ? "Делаем кадр" : "Поставили в очередь"}</h1>
           <p className="focus-screen__text">
             {currentJob.status === "running"
-              ? "Сервис уже собирает результат. Экран обновится автоматически."
-              : `Сейчас позиция ${currentJob.queue_position ?? "скоро запуск"}, впереди ${currentJob.jobs_ahead} задач, ожидание ${formatWait(currentJob.estimated_wait_seconds)}.`}
+              ? "Генерация уже идет."
+              : `Позиция ${currentJob.queue_position ?? "скоро запуск"}, впереди ${currentJob.jobs_ahead}, ждать ${formatWait(currentJob.estimated_wait_seconds)}.`}
           </p>
 
           <div className="focus-stats">
@@ -388,15 +340,15 @@ function App() {
             ) : null}
             {portraitPreview ? (
               <div className="focus-preview__card">
-                <img src={portraitPreview} alt="Лицо для генерации" decoding="async" />
-                <span>Ваше лицо</span>
+                <img src={portraitPreview} alt="Лицо" decoding="async" />
+                <span>Лицо</span>
               </div>
             ) : null}
           </div>
 
           <div className="focus-actions">
             <button type="button" className="secondary-button" onClick={dismissCurrentJob}>
-              Вернуться к ленте
+              Назад к ленте
             </button>
           </div>
         </section>
@@ -405,11 +357,11 @@ function App() {
       {isResultView && currentJob ? (
         <section className="focus-screen">
           <span className="eyebrow">{currentJob.status === "failed" ? "Ошибка" : "Готово"}</span>
-          <h1>{currentJob.status === "failed" ? "Не удалось собрать кадр" : "Выбери лучший вариант"}</h1>
+          <h1>{currentJob.status === "failed" ? "Не получилось" : "Результат готов"}</h1>
           <p className="focus-screen__text">
             {currentJob.status === "failed"
-              ? currentJob.error_message || "Попробуй еще раз с другим фото или другим шаблоном."
-              : "Результаты готовы. Можно открыть любой вариант и вернуться обратно в ленту."}
+              ? currentJob.error_message || "Попробуй еще раз."
+              : "Можно открыть вариант в полном размере или вернуться к ленте."}
           </p>
 
           {currentJob.status === "failed" ? (
@@ -446,7 +398,7 @@ function App() {
                     >
                       <img
                         src={assetUrl(result.thumb_url)}
-                        alt={`Превью ${result.index + 1}`}
+                        alt={`Вариант ${result.index + 1}`}
                         loading="lazy"
                         decoding="async"
                         sizes="(max-width: 760px) 45vw, 160px"
@@ -465,10 +417,10 @@ function App() {
                   <button
                     type="button"
                     className="primary-button"
-                    disabled={!hasFaceSource || submitting}
+                    disabled={!hasFaceSource || Boolean(submittingStyleId)}
                     onClick={() => void runStyle(currentStyle.id)}
                   >
-                    {submitting ? "Ставим в очередь..." : "Сделать еще"}
+                    {submittingStyleId === currentStyle.id ? "Ставим..." : "Сделать еще"}
                   </button>
                 ) : null}
               </div>
@@ -479,71 +431,57 @@ function App() {
 
       {!isQueueView && !isResultView ? (
         <>
-          <header className="simple-header">
-            <div className="simple-header__badges">
-              <span className="simple-badge">avatar_ai</span>
-              <span className="simple-badge">{isTelegram ? "Telegram" : "Browser preview"}</span>
+          <section ref={setupRef} className="feed-toolbar">
+            <div className="feed-toolbar__top">
+              <span className="micro-pill">Лента</span>
+              <span className={`feed-toolbar__state ${hasFaceSource ? "is-ready" : ""}`}>
+                {hasFaceSource ? "Лицо выбрано" : "Сначала выбери лицо"}
+              </span>
             </div>
-            <h1>Выбери шаблон и вставь себя</h1>
-            <p>
-              Один раз добавляешь лицо. Потом просто нажимаешь на понравившийся пример из ленты.
-            </p>
-          </header>
+
+            <div className="feed-toolbar__grid">
+              <FaceProfilePanel
+                guestSessionId={isTelegram ? undefined : guestSessionId}
+                telegramInitData={isTelegram ? telegramInitData : undefined}
+                selectedFaceProfileId={selectedFaceProfileId}
+                onSelectFaceProfileId={handleSelectFaceProfile}
+              />
+
+              <section className="mini-override-panel">
+                <div className="mini-override-panel__head">
+                  <span className="eyebrow">Другое лицо</span>
+                  <p>На один раз</p>
+                </div>
+
+                {portraitPreview ? (
+                  <div className="mini-override-panel__preview">
+                    <img src={portraitPreview} alt="Другое лицо" decoding="async" />
+                    <div className="mini-override-panel__actions">
+                      <label className="ghost-button">
+                        Заменить
+                        <input type="file" accept="image/*" onChange={onFileChange} />
+                      </label>
+                      <button type="button" className="ghost-button" onClick={clearTemporaryUpload}>
+                        Убрать
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="mini-upload-button">
+                    <input type="file" accept="image/*" onChange={onFileChange} />
+                    <span>Загрузить фото</span>
+                  </label>
+                )}
+              </section>
+            </div>
+          </section>
 
           {error ? <div className="error-banner simple-error">{error}</div> : null}
 
-          <section ref={composerRef} className="setup-grid">
-            <FaceProfilePanel
-              guestSessionId={isTelegram ? undefined : guestSessionId}
-              telegramInitData={isTelegram ? telegramInitData : undefined}
-              selectedFaceProfileId={selectedFaceProfileId}
-              onSelectFaceProfileId={handleSelectFaceProfile}
-            />
-
-            <section className="quick-override-panel">
-              <div className="quick-override-panel__head">
-                <div>
-                  <span className="eyebrow">Разовая подмена</span>
-                  <h3>{portraitPreview ? "На этот запуск выбрано другое лицо" : "Нужно вставить не себя?"}</h3>
-                </div>
-                <p>
-                  {portraitPreview
-                    ? "Это фото будет использовано только для текущей задачи."
-                    : "Можно временно загрузить фото друга или другого человека, не меняя сохраненное лицо."}
-                </p>
-              </div>
-
-              {portraitPreview ? (
-                <div className="override-preview">
-                  <img src={portraitPreview} alt="Временное лицо" decoding="async" />
-                  <div className="override-preview__actions">
-                    <label className="ghost-button">
-                      Заменить фото
-                      <input type="file" accept="image/*" onChange={onFileChange} />
-                    </label>
-                    <button type="button" className="ghost-button" onClick={clearTemporaryUpload}>
-                      Убрать
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <label className="simple-upload">
-                  <input type="file" accept="image/*" onChange={onFileChange} />
-                  <span>Загрузить другое лицо</span>
-                  <strong>Например фото друга</strong>
-                  <small>Если ничего не загружать, будет использовано сохраненное лицо.</small>
-                </label>
-              )}
-            </section>
-          </section>
-
-          <section className="feed-block">
-            <div className="feed-block__head">
-              <div>
-                <span className="eyebrow">Лента</span>
-                <h2>{loading ? "Загружаем примеры..." : "Готовые примеры"}</h2>
-              </div>
-              <p>{actionHint}</p>
+          <section className="feed-block feed-block--primary">
+            <div className="feed-block__head feed-block__head--compact">
+              <h2>{loading ? "Загружаем..." : "Примеры"}</h2>
+              <p>Нажми «Вставить себя» на нужной карточке.</p>
             </div>
 
             <div className="feed-grid">
@@ -580,54 +518,13 @@ function App() {
                       <button
                         type="button"
                         className="primary-button"
-                        disabled={submitting}
+                        disabled={Boolean(submittingStyleId)}
                         onClick={() => void runStyle(style.id)}
                       >
-                        {submitting && isSelected ? "Ставим в очередь..." : "Вставить себя"}
+                        {submittingStyleId === style.id ? "Ставим..." : "Вставить себя"}
                       </button>
                     </div>
                   </article>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="mini-history">
-            <div className="feed-block__head">
-              <div>
-                <span className="eyebrow">История</span>
-                <h2>Последние рендеры</h2>
-              </div>
-              <p>{history.length > 0 ? "Можно открыть любой старый запуск." : "История появится после первого рендера."}</p>
-            </div>
-
-            <div className="mini-history__row">
-              {history.length === 0 ? <div className="history-empty">Пока пусто.</div> : null}
-              {history.map((job) => {
-                const historyImage = pickHistoryImage(job);
-                return (
-                  <button
-                    type="button"
-                    key={job.job_id}
-                    className={`mini-history-card ${job.job_id === currentJobId ? "is-current" : ""}`}
-                    onClick={() => {
-                      setCurrentJobId(job.job_id);
-                      updateJobInUrl(job.job_id);
-                    }}
-                  >
-                    <div className="mini-history-card__thumb">
-                      {historyImage ? (
-                        <img src={historyImage} alt={job.style_id} loading="lazy" decoding="async" sizes="88px" />
-                      ) : (
-                        <div className="history-card__placeholder" />
-                      )}
-                    </div>
-                    <div className="mini-history-card__body">
-                      <strong>{styleById.get(job.style_id)?.name || job.style_id}</strong>
-                      <span>{humanStatus(job.status)}</span>
-                      <small>{formatMoment(job.created_at)}</small>
-                    </div>
-                  </button>
                 );
               })}
             </div>
